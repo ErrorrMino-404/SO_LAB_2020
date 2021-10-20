@@ -1,11 +1,12 @@
 #include "master_lib.h"
-
+#include "config.h"
+#include <math.h>
 #include <stdlib.h>
 #include <sys/sem.h>
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq, int idp){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr, int idp){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -15,7 +16,7 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq, int idp){
     new_s->maps_id = ids;
     new_s->msgq_id = idq;
     new_s->ks_shm_id = idm;
-    
+    new_s->sem_sync_round = idsemr;
     new_s->sem_set_pl = idp;
     return new_s;
 }
@@ -74,18 +75,36 @@ char* integer_to_string_arg(int x){
     return sup_x;
 }
 
-void randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps,int my_pos, int width,int height){
-    int i, ok, sem, x, y;
-    srand(time(NULL));
-  
-    while(!ok){
-        x=rand()%height;
-        y=rand()%width;
-        sem=maps[x*width+y].c_sem_id;
-        if((semctl(sem,0, GETVAL))){
-            ok = 1;
-        }
+int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp, int taxi_id){
+    int i, ok, sem, x, y,j;
+    int* my_arr;
+   
+    if((my_arr = (int*)shmat(taxi_id,NULL,0))==(void*) -1 ){
+        printf("errore nel randomize_source my arr \n");
     }
-    taxi_list[my_pos].x = x;
-    taxi_list[my_pos].y = y;
+    srand(time(NULL));
+    i =0;
+    while(i<my_mp->num_taxi){
+        x = rand()%(my_mp->height);
+        y = rand()%(my_mp->width);
+        sem = x*my_mp->width+y;
+        if(semctl(maps[sem].c_sem_id,0,GETVAL)){
+            ok=1;
+            for( j=0; j<i; j++){
+                if(my_arr[j]==sem){
+                    ok=0;
+                }
+            }
+            if(ok==1){
+                printf("sono il taxi=%d e la mia posizione=%d \n",i,sem);
+                my_arr[i]=sem;
+                taxi_list[i].x = x;
+                taxi_list[i].y = y;
+                i++;
+            }
+        }  
+
+    }
+    
+    return my_arr;
 }
