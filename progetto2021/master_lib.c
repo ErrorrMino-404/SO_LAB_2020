@@ -1,12 +1,11 @@
 #include "master_lib.h"
 #include "config.h"
 #include <math.h>
-#include <stdlib.h>
-#include <sys/sem.h>
+#include <stdio.h>
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr, int idp){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -17,7 +16,6 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr, i
     new_s->msgq_id = idq;
     new_s->ks_shm_id = idm;
     new_s->sem_sync_round = idsemr;
-    new_s->sem_set_pl = idp;
     return new_s;
 }
 
@@ -30,9 +28,9 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
     int* my_arr;
     int i,j,x,y,ok;
     int num_r, num_sem, tmp_index;
-    printf("sono entrato\n");
+    
     if((my_arr = (int*) shmat(arr_id,NULL,0))==(void*) -1 ){
-        printf("errore nel randomize_source my arr \n");
+        TEST_ERROR
     }
     srand(time(NULL));
     i = 0;
@@ -54,7 +52,6 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
                 }
             }
             if(ok==1){
-                printf("val di tmp_index %d \n", tmp_index);
                 my_arr[i]=tmp_index;
                 maps[my_arr[i]].val_holes = 1; /*la source è attiva  */              
                 i++;
@@ -80,7 +77,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
     int* my_arr;
    
     if((my_arr = (int*)shmat(taxi_id,NULL,0))==(void*) -1 ){
-        printf("errore nel randomize_source my arr \n");
+        TEST_ERROR
     }
     srand(time(NULL));
     i =0;
@@ -96,8 +93,8 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 }
             }
             if(ok==1){
-                printf("sono il taxi=%d e la mia posizione=%d \n",i,sem);
                 my_arr[i]=sem;
+                /*do la posizione sulla mappa*/
                 taxi_list[i].x = x;
                 taxi_list[i].y = y;
                 i++;
@@ -107,4 +104,58 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
     }
     
     return my_arr;
+}
+
+void compute_targets(taxi_data* taxi, int position_so, int num_taxi, slot* maps){
+    int i,j,x,y,k,h,best,dist,num_act;
+
+    num_act=(int)log(num_taxi);
+    
+    for(i=0; i<num_taxi;i++){
+        taxi[i].target = -1;
+    }
+  
+
+    /*for(i=0;position_so[i]!=-1;i++){*/
+        best = __INT_MAX__;
+        j = __INT_MAX__;
+        for(k=0;k<num_taxi;k++){
+                        if(taxi[k].target==-1){
+                                x=taxi[k].x;
+                                y=taxi[k].y;
+                                dist=abs(maps[position_so].x-x)+abs(maps[position_so].y-y);
+                                if( dist<best){
+                                        best=dist;
+                                        j=k;
+                                }
+                        }
+                }
+                if(j!=__INT_MAX__){
+                        taxi[j].target=i;
+                }
+    /*}*/
+
+    /*for(i=0;position_so[i]!=-1;i++){*/
+        
+       for(h=0;h<num_act;h++){
+                        best=__INT_MAX__;
+                        j=__INT_MAX__;
+                        for(k=0;k<num_taxi;k++){
+                                if(taxi[i].target!=-1){
+                                        x=taxi[k].x;
+                                        y=taxi[k].y;
+                                        dist=abs(taxi[position_so].x-x)+abs(maps[position_so].y-y);
+                                        if( dist<best){
+                                                best=dist;
+                                                j=k;
+                                        }
+                                }
+                        } 
+                        if(j!=__INT_MAX__){
+                                taxi[j].target=i;
+                        }
+                }
+   
+
+    /*}*/
 }

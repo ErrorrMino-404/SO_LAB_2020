@@ -12,7 +12,7 @@ slot* create_maps(int height, int width,int maps_id){
     if((maps=(slot*)shmat(maps_id, NULL, 0))== (void*) -1){
         TEST_ERROR;
     }
-
+    
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
             if((sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT|0666)) == -1){
@@ -32,7 +32,7 @@ slot* create_maps(int height, int width,int maps_id){
 }
 
 void print_maps(slot* maps, maps_config* my_mp){
-    int i, j, y, part, u;
+    int i, j,u;
     int sem_m;
 
     /*stampa mappa*/
@@ -53,7 +53,7 @@ void print_maps(slot* maps, maps_config* my_mp){
                     }else if(sem_m != 0 && maps[i*my_mp->width+j].val_holes!= 0){
                         printf("X");
                         u += 1;
-                    }else if(maps[i*my_mp->width+j].num_taxi+1 < 10){
+                    }else if(maps[i*my_mp->width+j].num_taxi < my_mp->num_taxi){
                         printf("1");
 
                     }reset();

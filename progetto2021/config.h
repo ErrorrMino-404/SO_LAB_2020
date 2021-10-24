@@ -2,7 +2,9 @@
 #define _CONF_LIB_
 #define MASTER_TO_TAXI 1
 #define TAXI_TO_MASTER 2
-
+#define WAIT 1
+#define START 2
+#define END 3
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,6 +14,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <signal.h>
+#include <math.h>
 #define TEST_ERROR      printf("%s:%d: PID=%5d: Error %d (%s)\n",__FILE__,__LINE__,getpid(),errno,strerror(errno));\
                         printf("exit:EXIT_FAILURE\n");\
                         raise(SIGINT);

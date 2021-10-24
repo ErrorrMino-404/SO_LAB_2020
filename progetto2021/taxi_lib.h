@@ -7,5 +7,4 @@
 void allocate_taxi (int, int, int ,slot*, int);
 
 
-
 #endif

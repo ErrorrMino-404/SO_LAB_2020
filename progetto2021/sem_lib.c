@@ -1,13 +1,12 @@
-#include <sys/sem.h>
 #include <unistd.h>
 #include "sem_lib.h"
 
 int sem_reserve(int sem_id,int sem_num){
-    struct sembuf sops;
-    sops.sem_num = sem_num;
-    sops.sem_flg = -1;
-    sops.sem_op = 0;
-    return semop(sem_id, &sops, 1);
+	struct sembuf sops;
+	sops.sem_num = sem_num;
+	sops.sem_op = -1;
+	sops.sem_flg = 0;
+	return semop(sem_id, &sops, 1);
 
 }
 
@@ -26,13 +25,14 @@ int init_sem_to_val(int sem_id, int pos, int value){
 }
 
 int wait_zero(int sem_id, int num_s){
-    struct sembuf sops;
-    sops.sem_flg = 0;
-    sops.sem_op = -1;
-    semop(sem_id,&sops,1);
-    sops.sem_flg = 0;
-    sops.sem_op = 0;
-    return semop(sem_id,&sops,1);
+  	struct sembuf sops;
+        sops.sem_num = num_s;
+        sops.sem_op = -1;
+        sops.sem_flg = 0;
+        semop(sem_id, &sops, 1);
+        sops.sem_flg = 0;
+        sops.sem_op = 0;
+        return semop(sem_id, &sops, 1);
 
 }
 

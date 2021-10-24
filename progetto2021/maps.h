@@ -11,6 +11,7 @@ typedef struct _slot{
     /*id del semaforo associato alla casella della mappa*/
     key_t c_sem_id;
     /*se in quella zona è attiva una SO_SOURCE*/
+    int val_source;
     int val_holes;
     int num_taxi;
     /*grandezza della scacchiera*/
