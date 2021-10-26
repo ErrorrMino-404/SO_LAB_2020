@@ -53,7 +53,7 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
             }
             if(ok==1){
                 my_arr[i]=tmp_index;
-                maps[my_arr[i]].val_holes = 1; /*la source è attiva  */              
+                maps[my_arr[i]].val_holes = 1; /*la holes è attiva  */              
                 i++;
             }
         }
@@ -85,10 +85,10 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(semctl(maps[sem].c_sem_id,0,GETVAL)){
+        if(semctl(maps[sem].c_sem_id,0,GETVAL)&& maps[sem].val_holes!=1){
             ok=1;
             for( j=0; j<i; j++){
-                if(my_arr[j]==sem){
+                if(my_arr[j]==sem ){
                     ok=0;
                 }
             }
@@ -97,6 +97,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 /*do la posizione sulla mappa*/
                 taxi_list[i].x = x;
                 taxi_list[i].y = y;
+                maps[sem].num_taxi = i;
                 i++;
             }
         }  
@@ -106,9 +107,14 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
     return my_arr;
 }
 
-void compute_targets(taxi_data* taxi, int position_so, int num_taxi, slot* maps){
+void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps){
     int i,j,x,y,k,h,best,dist,num_act;
+    int position_so[4];
 
+    position_so[0]= 23;
+    position_so[1] =75;
+    position_so[2] = 184;
+    position_so[3] = -1;
     num_act=(int)log(num_taxi);
     
     for(i=0; i<num_taxi;i++){
@@ -116,14 +122,14 @@ void compute_targets(taxi_data* taxi, int position_so, int num_taxi, slot* maps)
     }
   
 
-    /*for(i=0;position_so[i]!=-1;i++){*/
+    for(i=0;position_so[i]!=-1 ;i++){
         best = __INT_MAX__;
         j = __INT_MAX__;
         for(k=0;k<num_taxi;k++){
-                        if(taxi[k].target==-1){
+                        if(taxi[k].target==-1 || maps[position_so[i]].val_holes != 1){
                                 x=taxi[k].x;
                                 y=taxi[k].y;
-                                dist=abs(maps[position_so].x-x)+abs(maps[position_so].y-y);
+                                dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
                                 if( dist<best){
                                         best=dist;
                                         j=k;
@@ -131,11 +137,11 @@ void compute_targets(taxi_data* taxi, int position_so, int num_taxi, slot* maps)
                         }
                 }
                 if(j!=__INT_MAX__){
-                        taxi[j].target=i;
+                        taxi[j].target=position_so[i];
                 }
-    /*}*/
+    }
 
-    /*for(i=0;position_so[i]!=-1;i++){*/
+    for(i=0;position_so[i]!=-1;i++){
         
        for(h=0;h<num_act;h++){
                         best=__INT_MAX__;
@@ -144,18 +150,16 @@ void compute_targets(taxi_data* taxi, int position_so, int num_taxi, slot* maps)
                                 if(taxi[i].target!=-1){
                                         x=taxi[k].x;
                                         y=taxi[k].y;
-                                        dist=abs(taxi[position_so].x-x)+abs(maps[position_so].y-y);
+                                        dist=abs(taxi[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
                                         if( dist<best){
                                                 best=dist;
                                                 j=k;
                                         }
                                 }
                         } 
-                        if(j!=__INT_MAX__){
-                                taxi[j].target=i;
-                        }
-                }
-   
-
-    /*}*/
+            if(j!=__INT_MAX__){
+                taxi[j].target=position_so[i];
+            }
+        }
+    }
 }

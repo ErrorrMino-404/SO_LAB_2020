@@ -12,6 +12,7 @@ typedef struct _keys_storage {
     int maps_id;            /*id mappa */
     int msgq_id;            /*id della coda dei messaggi*/
     int round_source_id ;   /*id del puntatore al source*/
+    int sem_set_tx;
     int sem_sync_round;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
 }keys_storage;
 
@@ -47,5 +48,5 @@ char* integer_to_string_arg(int);
 int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*,int);
 
 /*targa del taxi che deve raggiungere quella posizione*/
-void compute_targets(taxi_data*, int,int, slot*);
+void compute_targets(taxi_data*, int, slot*);
 #endif

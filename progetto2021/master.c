@@ -1,3 +1,6 @@
+#include "config.h"
+#include "sem_lib.h"
+#include <stdlib.h>
 #include <unistd.h>
 #define _GNU_SOURCE
 #include "master_lib.h"
@@ -22,6 +25,7 @@ int main(){
     char* args_tx[6] = {TAXI};
     char* args_so[6] = {SOURCE};
 
+    
     /*allocazione e inizializzazione della memoria condivisa */
     if((gc_id_shm=shmget(IPC_PRIVATE, sizeof(maps_config), IPC_CREAT|0666))==-1){
                 TEST_ERROR;
@@ -97,7 +101,10 @@ int main(){
             TEST_ERROR;
         }
     }
-  
+    if((ho_id_shm=shmget(IPC_PRIVATE, (num_ho+1)*sizeof(int), IPC_CREAT|0666))==-1){
+            TEST_ERROR;
+    }
+        round_holes = randomize_holes(ho_id_shm, num_ho, my_mp, maps);
     /*alloco la memoria condivisa*/
     if((key_id_shm=shmget(IPC_PRIVATE,sizeof(keys_storage), IPC_CREAT|0666))==-1){
         TEST_ERROR;
@@ -108,7 +115,7 @@ int main(){
     /*args[2] id del taxi*/
     args_tx[3] = integer_to_string_arg(taxi_list_pos);
     position_taxi = randomize_coordinate_taxi(taxi_list, maps, my_mp,taxi_id_shm);
-
+    print_maps(maps, my_mp);
     /*Creazione dei processi taxi*/
     for(i=0; i<my_mp->num_taxi; i++){
         switch (taxi_pid[i]=fork()) {
@@ -123,39 +130,42 @@ int main(){
             default:
                 break;
         }
+        
+        
     }
-    wait_zero(sem_sync_round, 0);
-    args_so[1] = integer_to_string_arg(key_id_shm);
-    /*genero le source*/
-    for(i=0; i < my_mp->source; i++){
-        switch (fork()) {
-            case -1:
-                TEST_ERROR
-                break;
-            case 0:
-                execve(SOURCE,args_so,NULL);
-                TEST_ERROR;
-                break;
-            default:
-                break;
-        }
-    }
-    if((ho_id_shm=shmget(IPC_PRIVATE, (num_ho+1)*sizeof(int), IPC_CREAT|0666))==-1){
-        TEST_ERROR;
-    }
-    round_holes = randomize_holes(ho_id_shm, num_ho, my_mp, maps);
+        wait_zero(sem_sync_round,0);
+        print_maps(maps, my_mp);
+    int num_so = 2;
 
-    print_maps(maps, my_mp);
-    if((shmctl(ho_id_shm, IPC_RMID, NULL))==-1){
-                        TEST_ERROR
-    }
- 
-    compute_targets(taxi_list,1,my_mp->num_taxi,maps);
-    printf("posizione da raggiungere x = %d e y = %d \n", maps[1].x, maps[1].y);
-    for(i=0;i < my_mp->num_taxi; i++){
-            printf("posizione %d attuale %d \n",i, taxi_list[i].pos);
-            printf("posizione %d da raggiungere %d \n",i, taxi_list[i].target);
-            printf("x = %d e y = %d \n",taxi_list[i].x,taxi_list[i].y);
-            printf("\n");
+    while(1){
+        printf("sono dentro al primo while \n");
+        increase_resource(sem_sync_round,START, my_mp->num_taxi);
+        
+        compute_targets(taxi_list, my_mp->num_taxi,maps);
+        print_maps(maps, my_mp);
+        sem_reserve(sem_sync_round, WAIT);
+        printf("ho superato wait1 \n");
+        check_zero(sem_sync_round, START);
+        printf("ho superato start1 \n");
+        
+        sem_relase(sem_sync_round, WAIT);
+        printf("ho superato wait 2\n");
+        while(num_so>0){
+            
+            msgrcv(my_ks->msgq_id, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0);
+            num_so-=1;
+        }
+       sleep(1);
+
+
+        increase_resource(sem_sync_round,END, my_mp->num_taxi);
+
+
+        print_maps(maps, my_mp);
+        check_zero(sem_sync_round,END);
+        if((shmctl(ho_id_shm, IPC_RMID, NULL))==-1){
+                            TEST_ERROR
+        }
+    
     }
 }   

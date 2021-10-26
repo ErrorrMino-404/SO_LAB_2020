@@ -23,8 +23,10 @@ int main(int argc,char *argv[]){
     struct message mexSnd;
     struct message mexRcv;
     struct sembuf sops;
-
-
+    int index;
+    int targ_x,my_x,ex_x;
+    int targ_y,my_y,ex_y;
+    
     
     /* configurazione memoria condivisa*/
     keys_id = atoi(argv[1]);
@@ -40,7 +42,7 @@ int main(int argc,char *argv[]){
     if((taxi_list=shmat(atoi(argv[3]),NULL,0))==(void*)-1){
         TEST_ERROR;
     }
-
+    
 
     
     /*inizializzo struct del taxi*/
@@ -53,20 +55,102 @@ int main(int argc,char *argv[]){
     allocate_taxi(taxi_list[my_id].x,taxi_list[my_id].y,my_id, maps, my_mp->width );
     /*Comunicazione dei taxi con il master*/
     
+    mexSnd.type = TAXI_TO_MASTER;
+    mexSnd.msgc[0]=my_id;
   
-    wait_zero(my_ks->sem_sync_round,0);
 
+    my_x = taxi_list[my_id].x;
+    my_y = taxi_list[my_id].y;
 
     /*spostamento del taxi nella mappa*/
-
-
-    /*while(1){
+    wait_zero(my_ks->sem_sync_round, 0);
+    /*
+    while(1){
         check_zero(my_ks->sem_sync_round, WAIT);
-        if((arr_target=(int*)shmat(my_ks->round_source_id,NULL,0))==(void*)-1){
-            TEST_ERROR;
+        printf("ID=%d POS_ATT = %d TARGET=%d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
+        wait_zero(my_ks->sem_sync_round, START);
+        printf("ho superato lo start del taxi");
+        if(taxi_list[my_id].target != -1){
+            index = taxi_list[my_id].target;
+            targ_x = maps[index].x;
+            targ_y = maps[index].y;
+            while(index!=-1){
+                
+                
+                if(my_x<targ_x){
+                    if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 || 
+                        maps[(my_x+1)*my_mp->width+my_y].val_holes != 1){
+                            
+                        if(((my_x+1)*my_mp->width+my_y) == taxi_list[my_id].target ){
+                            mexSnd.msgc[1]=(my_x+1)*my_mp->width+my_y;  
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                        }
+                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
+                        maps[(my_x+1)*my_mp->width+my_y].num_taxi=taxi_list[my_id].my_pid;
+                        my_x +=1;
+                    
+                    }
+                    
+                }else if(my_x>targ_x){
+                    if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1|| 
+                        maps[(my_x-1)*my_mp->width+my_y].val_holes != 1){
+                        if(((my_x-1)*my_mp->width+my_y) == taxi_list[my_id].target ){
+                            mexSnd.msgc[1]=(my_x-1)*my_mp->width+my_y;  
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                        }
+                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
+                        maps[(my_x-1)*my_mp->width+my_y].num_taxi=taxi_list[my_id].my_pid;
+                        my_x -=1;
+                    }
+                }
+                
+               
+                if(my_y<targ_y){
+                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1|| 
+                        maps[(my_x)*my_mp->width+my_y+1].val_holes != 1){
+                        if(((my_x)*my_mp->width+my_y+1) == taxi_list[my_id].target ){
+                            mexSnd.msgc[1]=(my_x)*my_mp->width+my_y+1;  
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                        }
+                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
+                        maps[(my_x)*my_mp->width+my_y+1].num_taxi=taxi_list[my_id].my_pid;
+                        my_y +=1;
+                    
+                    }
+                    
+                }else if(my_x>targ_x){
+                    if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1|| 
+                        maps[(my_x)*my_mp->width+my_y-1].val_holes != 1){
+                        if(((my_x)*my_mp->width+my_y-1) == taxi_list[my_id].target ){
+                            mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                        }
+                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
+                        maps[(my_x)*my_mp->width+my_y-1].num_taxi=taxi_list[my_id].my_pid;
+                        my_y -=1;
+                    }
+                }
+                    if(my_x==ex_x && my_y==ex_y){
+                        break;
+                    }
+                    ex_x=my_x;
+                    ex_y=my_y;
+            
+            }
+
+            taxi_list[my_id].x = my_x;
+            taxi_list[my_id].y = my_y;    
+            taxi_list[my_id].pos = (my_x*my_mp->width+my_y);
+            printf("ID=%d POS=%d \n",my_id, taxi_list[my_id].pos);
         }
-        wait_zero(my_ks->sem_sync_round,START);
         
-    }*/
+       wait_zero(my_ks->sem_sync_round, END);  
+    }
+    
+    */
 }
 

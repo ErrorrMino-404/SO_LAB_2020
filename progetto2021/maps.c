@@ -16,13 +16,14 @@ slot* create_maps(int height, int width,int maps_id){
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
             if((sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT|0666)) == -1){
-                TEST_ERROR;
+                TEST_ERROR
             }
             if((init_sem_to_val(sem_id, 0, 1))==-1){
-                                TEST_ERROR;
+                                TEST_ERROR
             }
                         maps[i*width+j].c_sem_id=sem_id;
                         maps[i*width+j].val_holes = 0;
+                        maps[i*width+j].num_taxi = 0;
                         maps[i*width+j].x=i;
                         maps[i*width+j].y=j;
         }
@@ -54,7 +55,8 @@ void print_maps(slot* maps, maps_config* my_mp){
                         printf("X");
                         u += 1;
                     }else if(maps[i*my_mp->width+j].num_taxi < my_mp->num_taxi){
-                        printf("1");
+                       
+                        printf("1" );
 
                     }reset();
                         
