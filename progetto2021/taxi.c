@@ -1,11 +1,3 @@
-#include "config.h"
-#include "sem_lib.h"
-#include <signal.h>
-#include <stdio.h>
-#include <strings.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
-#include <unistd.h>
 #define _GNU_SOURCE
 #include "taxi_lib.h"
 
@@ -23,6 +15,7 @@ int main(int argc,char *argv[]){
     struct message mexSnd;
     struct message mexRcv;
     struct sembuf sops;
+    struct timespec tim;
     int index;
     int targ_x,my_x,ex_x;
     int targ_y,my_y,ex_y;
@@ -58,80 +51,85 @@ int main(int argc,char *argv[]){
     mexSnd.type = TAXI_TO_MASTER;
     mexSnd.msgc[0]=my_id;
   
-
+    sops.sem_num = 0;
+    sops.sem_op = -1;
+    sops.sem_flg = IPC_NOWAIT;
     my_x = taxi_list[my_id].x;
     my_y = taxi_list[my_id].y;
+    tim.tv_nsec=0;
+    tim.tv_nsec=(long)100000000;
 
     /*spostamento del taxi nella mappa*/
     wait_zero(my_ks->sem_sync_round, 0);
-    /*
+    
     while(1){
+        
         check_zero(my_ks->sem_sync_round, WAIT);
-        printf("ID=%d POS_ATT = %d TARGET=%d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
         wait_zero(my_ks->sem_sync_round, START);
-        printf("ho superato lo start del taxi");
+
         if(taxi_list[my_id].target != -1){
+            
             index = taxi_list[my_id].target;
             targ_x = maps[index].x;
             targ_y = maps[index].y;
-            while(index!=-1){
-                
-                
+            printf("TAXI = %d POS = %d TARG = %d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
+            while(index!=-1 && maps[(my_x)*my_mp->width+my_y].val_source != 1 ) {
                 if(my_x<targ_x){
-                    if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 || 
-                        maps[(my_x+1)*my_mp->width+my_y].val_holes != 1){
-                            
-                        if(((my_x+1)*my_mp->width+my_y) == taxi_list[my_id].target ){
+                    if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 ){
+                        if(maps[(my_x+1)*my_mp->width+my_y].val_source != 0 ){
+                            printf("TAXI %d mando messaggio 1 \n", my_id);
                             mexSnd.msgc[1]=(my_x+1)*my_mp->width+my_y;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);  
                         }
-                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
-                        maps[(my_x+1)*my_mp->width+my_y].num_taxi=taxi_list[my_id].my_pid;
+                        maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
                         my_x +=1;
-                    
+                        nanosleep(&tim, NULL);
                     }
                     
                 }else if(my_x>targ_x){
-                    if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1|| 
-                        maps[(my_x-1)*my_mp->width+my_y].val_holes != 1){
-                        if(((my_x-1)*my_mp->width+my_y) == taxi_list[my_id].target ){
+                    if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 ){
+                        if(maps[(my_x-1)*my_mp->width+my_y].val_source != 0 ){
+                            printf("TAXI %d mando messaggio 2 \n",my_id);
                             mexSnd.msgc[1]=(my_x-1)*my_mp->width+my_y;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
                         }
-                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
-                        maps[(my_x-1)*my_mp->width+my_y].num_taxi=taxi_list[my_id].my_pid;
+                        maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
                         my_x -=1;
+                        nanosleep(&tim, NULL);
+
+
                     }
                 }
-                
-               
+        
                 if(my_y<targ_y){
-                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1|| 
-                        maps[(my_x)*my_mp->width+my_y+1].val_holes != 1){
-                        if(((my_x)*my_mp->width+my_y+1) == taxi_list[my_id].target ){
+                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1 ){
+                        if(maps[(my_x)*my_mp->width+my_y+1].val_source != 0){
+                             printf("TAXI %d mando messaggio 3 \n", my_id);
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y+1;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
                         }
-                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
-                        maps[(my_x)*my_mp->width+my_y+1].num_taxi=taxi_list[my_id].my_pid;
+                        maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
                         my_y +=1;
-                    
-                    }
-                    
-                }else if(my_x>targ_x){
-                    if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1|| 
-                        maps[(my_x)*my_mp->width+my_y-1].val_holes != 1){
-                        if(((my_x)*my_mp->width+my_y-1) == taxi_list[my_id].target ){
+                        nanosleep(&tim, NULL);
+                   }
+                }else if(my_y>targ_y){
+                    if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1 ){
+                        if(maps[(my_x)*my_mp->width+my_y-1].val_source ==1){
+                            printf("TAXI %d mando messaggio 4 \n", my_id);
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
                         }
-                        maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
-                        maps[(my_x)*my_mp->width+my_y-1].num_taxi=taxi_list[my_id].my_pid;
+                        maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
                         my_y -=1;
+                        nanosleep(&tim, NULL);
                     }
                 }
                     if(my_x==ex_x && my_y==ex_y){
@@ -139,18 +137,15 @@ int main(int argc,char *argv[]){
                     }
                     ex_x=my_x;
                     ex_y=my_y;
-            
             }
 
             taxi_list[my_id].x = my_x;
             taxi_list[my_id].y = my_y;    
-            taxi_list[my_id].pos = (my_x*my_mp->width+my_y);
-            printf("ID=%d POS=%d \n",my_id, taxi_list[my_id].pos);
         }
-        
+         
        wait_zero(my_ks->sem_sync_round, END);  
     }
     
-    */
+    
 }
 

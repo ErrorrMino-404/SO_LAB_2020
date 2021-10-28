@@ -53,7 +53,7 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
             }
             if(ok==1){
                 my_arr[i]=tmp_index;
-                maps[my_arr[i]].val_holes = 1; /*la holes è attiva  */              
+                maps[tmp_index].val_holes = 1; /*la holes è attiva  */              
                 i++;
             }
         }
@@ -72,11 +72,11 @@ char* integer_to_string_arg(int x){
     return sup_x;
 }
 
-int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp, int taxi_id){
+int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp){
     int i, ok, sem, x, y,j;
     int* my_arr;
    
-    if((my_arr = (int*)shmat(taxi_id,NULL,0))==(void*) -1 ){
+    if((my_arr = (int*)shmat(my_mp->num_taxi,NULL,0))==(void*) -1 ){
         TEST_ERROR
     }
     srand(time(NULL));
@@ -106,15 +106,15 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
     
     return my_arr;
 }
+int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_config* my_mp, int source_id){
+    int i, ok, sem, x, y,j;
 
+
+}
 void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps){
     int i,j,x,y,k,h,best,dist,num_act;
     int position_so[4];
 
-    position_so[0]= 23;
-    position_so[1] =75;
-    position_so[2] = 184;
-    position_so[3] = -1;
     num_act=(int)log(num_taxi);
     
     for(i=0; i<num_taxi;i++){
@@ -122,44 +122,42 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps){
     }
   
 
-    for(i=0;position_so[i]!=-1 ;i++){
-        best = __INT_MAX__;
-        j = __INT_MAX__;
-        for(k=0;k<num_taxi;k++){
-                        if(taxi[k].target==-1 || maps[position_so[i]].val_holes != 1){
-                                x=taxi[k].x;
-                                y=taxi[k].y;
-                                dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
-                                if( dist<best){
-                                        best=dist;
-                                        j=k;
-                                }
+        for(i=0;position_so[i]!=-1 ;i++){
+                best=__INT_MAX__;
+                j=__INT_MAX__;
+                for(k=0;k<num_taxi;k++){
+                    if(taxi[k].target==-1){
+                        x=taxi[k].x;
+                        y=taxi[k].y;
+                        dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
+                        if( dist<best){
+                            best=dist;
+                            j=k;
                         }
+                    }
                 }
                 if(j!=__INT_MAX__){
-                        taxi[j].target=position_so[i];
+                    taxi[j].target=position_so[i];
                 }
-    }
-
-    for(i=0;position_so[i]!=-1;i++){
-        
-       for(h=0;h<num_act;h++){
+        }
+        for(i=0;position_so[i]!=-1 ;i++){
+                for(h=0;h<num_act;h++){
                         best=__INT_MAX__;
                         j=__INT_MAX__;
                         for(k=0;k<num_taxi;k++){
-                                if(taxi[i].target!=-1){
-                                        x=taxi[k].x;
-                                        y=taxi[k].y;
-                                        dist=abs(taxi[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
-                                        if( dist<best){
-                                                best=dist;
-                                                j=k;
-                                        }
+                            if(taxi[i].target!=-1){
+                                x=taxi[k].x;
+                                y=taxi[k].y;
+                                dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
+                                if(dist<best){
+                                    best=dist;
+                                    j=k;
                                 }
+                            }
                         } 
-            if(j!=__INT_MAX__){
-                taxi[j].target=position_so[i];
-            }
+                        if(j!=__INT_MAX__){
+                            taxi[j].target=position_so[i];
+                        }
+                }
         }
-    }
 }

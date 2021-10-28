@@ -23,9 +23,10 @@ slot* create_maps(int height, int width,int maps_id){
             }
                         maps[i*width+j].c_sem_id=sem_id;
                         maps[i*width+j].val_holes = 0;
-                        maps[i*width+j].num_taxi = 0;
+                        maps[i*width+j].num_taxi = -1;
                         maps[i*width+j].x=i;
                         maps[i*width+j].y=j;
+                        maps[i*width+j].val_source = 0;
         }
     }
 
