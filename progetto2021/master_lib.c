@@ -2,6 +2,8 @@
 #include "config.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/sem.h>
 
 
 
@@ -72,11 +74,11 @@ char* integer_to_string_arg(int x){
     return sup_x;
 }
 
-int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp){
+int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp,int tx_num){
     int i, ok, sem, x, y,j;
     int* my_arr;
    
-    if((my_arr = (int*)shmat(my_mp->num_taxi,NULL,0))==(void*) -1 ){
+    if((my_arr = (int*)shmat(tx_num,NULL,0))==(void*) -1 ){
         TEST_ERROR
     }
     srand(time(NULL));
@@ -99,6 +101,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 taxi_list[i].y = y;
                 maps[sem].num_taxi = i;
                 i++;
+                printf(" id= %d POS=%d x=%d y=%d\n",i,sem,x,y);
             }
         }  
 
@@ -106,23 +109,51 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
     
     return my_arr;
 }
-int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_config* my_mp, int source_id){
+int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_config* my_mp,int so_num){
     int i, ok, sem, x, y,j;
-
-
+    int* my_arr_so;
+    if((my_arr_so = (int*)shmat(so_num,NULL,0))==(void*) -1 ){
+        TEST_ERROR;
+    }
+    srand(time(NULL));
+    i = 0;
+    while(i<my_mp->source){
+        
+        x = rand()%(my_mp->height);
+        y = rand()%(my_mp->width);
+        sem = x*my_mp->width+y;
+        printf("prova n %d \n",i);
+        if(maps[sem].val_holes != 1){
+            ok = 1;
+            for(j =0; j<i; j++){
+                if(my_arr_so[j]==sem){
+                    ok =0;
+                }
+            }
+        
+            if(ok==1){
+                my_arr_so[i] = sem;
+                list_source[i].x=x;
+                list_source[i].y=y;
+                maps[sem].val_source = 1;
+                i++;
+                printf("POS=%d x=%d y=%d\n",sem,x,y);
+            }
+        }
+    }
+    my_arr_so[my_mp->source] = -1; 
+    return my_arr_so;
 }
-void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps){
+void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so){
     int i,j,x,y,k,h,best,dist,num_act;
-    int position_so[4];
 
     num_act=(int)log(num_taxi);
     
     for(i=0; i<num_taxi;i++){
         taxi[i].target = -1;
     }
-  
 
-        for(i=0;position_so[i]!=-1 ;i++){
+    for(i=0;position_so[i]!=-1 ;i++){
                 best=__INT_MAX__;
                 j=__INT_MAX__;
                 for(k=0;k<num_taxi;k++){

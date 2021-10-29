@@ -72,33 +72,42 @@ int main(int argc,char *argv[]){
             index = taxi_list[my_id].target;
             targ_x = maps[index].x;
             targ_y = maps[index].y;
-            printf("TAXI = %d POS = %d TARG = %d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
-            while(index!=-1 && maps[(my_x)*my_mp->width+my_y].val_source != 1 ) {
+            while(index!=-1 ) {
+                printf("TAXI = %d POS = %d TARG = %d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
+
                 if(my_x<targ_x){
-                    if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 ){
+                    if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
+                        printf("list \n");
                         if(maps[(my_x+1)*my_mp->width+my_y].val_source != 0 ){
                             printf("TAXI %d mando messaggio 1 \n", my_id);
                             mexSnd.msgc[1]=(my_x+1)*my_mp->width+my_y;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);  
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            index = -1; 
                         }
                         maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                         maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
+                        taxi_list[my_id].pos = (my_x+1)*my_mp->width+my_y;
                         my_x +=1;
                         nanosleep(&tim, NULL);
                     }
                     
                 }else if(my_x>targ_x){
                     if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 ){
+                                                printf("list \n");
+
                         if(maps[(my_x-1)*my_mp->width+my_y].val_source != 0 ){
                             printf("TAXI %d mando messaggio 2 \n",my_id);
                             mexSnd.msgc[1]=(my_x-1)*my_mp->width+my_y;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            index=-1;  
                         }
                         maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                         maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
                         my_x -=1;
+                        taxi_list[my_id].pos = (my_x-1)*my_mp->width+my_y;
+
                         nanosleep(&tim, NULL);
 
 
@@ -106,30 +115,42 @@ int main(int argc,char *argv[]){
                 }
         
                 if(my_y<targ_y){
-                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1 ){
+                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){
+                                
                         if(maps[(my_x)*my_mp->width+my_y+1].val_source != 0){
                              printf("TAXI %d mando messaggio 3 \n", my_id);
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y+1;  
-                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
+                            msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);
+                            index = -1;
                         }
                         maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                         maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
                         my_y +=1;
+                        taxi_list[my_id].pos = (my_x)*my_mp->width+my_y+1;
                         nanosleep(&tim, NULL);
                    }
                 }else if(my_y>targ_y){
-                    if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1 ){
+                    if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){
                         if(maps[(my_x)*my_mp->width+my_y-1].val_source ==1){
                             printf("TAXI %d mando messaggio 4 \n", my_id);
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
+                            index = -1;
                         }
                         maps[my_x*my_mp->width+my_y].num_taxi = -1;
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                         maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
                         my_y -=1;
+                        taxi_list[my_id].pos = (my_x)*my_mp->width+my_y-1;
                         nanosleep(&tim, NULL);
+                    }
+                }else if(my_x == targ_x && my_y == targ_y ){
+                    if(maps[(my_x)*my_mp->width+my_y].val_source ==1){
+                        printf("TAXI %d mando messaggio 5 \n", my_id);
+                        mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
+                        msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
+                        index = -1;
                     }
                 }
                     if(my_x==ex_x && my_y==ex_y){

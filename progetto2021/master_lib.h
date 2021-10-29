@@ -34,6 +34,8 @@ typedef struct _source_data{
     int origin;  /*origine in cui viene generata la richiesta*/
     int destin;  /*destinazione che si deve recare */
     int my_taxi; /*il taxi incaricato*/
+    int x;       /*posizione sulla mappa*/
+    int y;
 }source_data;
 
 keys_storage* fill_storage_shm(int, int, int, int, int);
@@ -45,8 +47,10 @@ int* randomize_holes(int, int, maps_config*, slot*);
 /*restituisce un char* che corrisponde all'int passato come argomento*/
 char* integer_to_string_arg(int);
 
-int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*);
+int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*,int);
+
+int* randomize_coordinate_source (source_data*, slot*, maps_config*,int);
 
 /*targa del taxi che deve raggiungere quella posizione*/
-void compute_targets(taxi_data*, int, slot*);
+void compute_targets(taxi_data*, int, slot*, int*);
 #endif
