@@ -1,8 +1,7 @@
 #ifndef _M_LIB_
 #define _M_LIB_
-#include "config.h"
 #include "maps.h"
-#include "sem_lib.h"
+#include "math.h"
 
 #define TAXI "taxi"
 #define SOURCE "source"
@@ -50,6 +49,8 @@ char* integer_to_string_arg(int);
 int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*,int);
 
 int* randomize_coordinate_source (source_data*, slot*, maps_config*,int);
+
+void print_metrics(maps_config*,int*);
 
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);

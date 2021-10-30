@@ -6,6 +6,7 @@
 #define START 2
 #define END 3
 
+#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -14,7 +15,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <signal.h>
-#include <math.h>
+
 #define TEST_ERROR      printf("%s:%d: PID=%5d: Error %d (%s)\n",__FILE__,__LINE__,getpid(),errno,strerror(errno));\
                         printf("exit:EXIT_FAILURE\n");\
                         raise(SIGINT);

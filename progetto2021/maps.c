@@ -1,8 +1,5 @@
 #include "maps.h"
-#include "config.h"
-#include <stdio.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
+
 
 slot* create_maps(int height, int width,int maps_id){
     printf("Creo la Mappa TAXI e RICHIESTE\n");
@@ -32,8 +29,16 @@ slot* create_maps(int height, int width,int maps_id){
 
     return maps;
 }
+void clean_sem_maps(int height, int width, slot* maps){
+    int i, j;
+    for(i=0; i<height*width; i++){
+        if((semctl(maps[i].c_sem_id, 0, IPC_RMID))==-1){
+            TEST_ERROR
+        }
+    }
+}
 
-void print_maps(slot* maps, maps_config* my_mp){
+void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position_so){
     int i, j,u;
     int sem_m;
 
@@ -70,12 +75,23 @@ void print_maps(slot* maps, maps_config* my_mp){
         printf("_");
     }
     printf("|\n");
-
+    /*stampo movimenti taxi*/
+      printf("\n\nSOURCE NELLA MAPPA : \n");
+    for(i=0;i < my_mp->source-1; i++){
+        printf("SOURCE = %d POS = %d \n",i,position_so[i]);
+    }
+    printf("\n");
+    printf("TAXI NELLA MAPPA : \n");
+    for(i=0;i < my_mp->num_taxi; i++){
+        printf("TAXI = %d POS = %d \n",i,position_taxi[i]);
+    }
+   
+    for(j=0; j<=my_mp->width; j++){
+                printf("=");
+    }
+    printf("\n\n");
 }
 
-void color(char* my_color){
-        printf("\033%s", my_color);
-}
 
 void reset () {
         printf("\033[0m");

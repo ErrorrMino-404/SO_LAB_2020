@@ -21,9 +21,10 @@ typedef struct _slot{
 
 slot* create_maps (int, int, int);
 
-void print_maps(slot*, maps_config*);
+void print_maps(slot*, maps_config*,int*,int*);
 
-void color(char*);
+void clean_sem_maps(int, int, slot*);
+
 void reset();
 
 

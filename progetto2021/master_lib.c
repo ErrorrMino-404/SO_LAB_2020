@@ -1,9 +1,5 @@
 #include "master_lib.h"
-#include "config.h"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/sem.h>
+
 
 
 
@@ -99,9 +95,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 /*do la posizione sulla mappa*/
                 taxi_list[i].x = x;
                 taxi_list[i].y = y;
-                maps[sem].num_taxi = i;
                 i++;
-                printf(" id= %d POS=%d x=%d y=%d\n",i,sem,x,y);
             }
         }  
 
@@ -122,7 +116,6 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        printf("prova n %d \n",i);
         if(maps[sem].val_holes != 1){
             ok = 1;
             for(j =0; j<i; j++){
@@ -137,7 +130,6 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
                 list_source[i].y=y;
                 maps[sem].val_source = 1;
                 i++;
-                printf("POS=%d x=%d y=%d\n",sem,x,y);
             }
         }
     }
@@ -191,4 +183,28 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         }
                 }
         }
+}
+
+
+void print_metrics( maps_config * my_mp, int* array_id_taxi){
+        int i,j;
+        taxi_data* taxi_list;
+        
+        printf("PRINTING METRICS:\n");
+        for(j=0; j<=my_mp->width; j++){
+                printf("=");               
+        }
+        for(i=0;i<my_mp->num_taxi;i++){
+                
+                if((taxi_list=(taxi_data*)shmat(array_id_taxi[i],NULL,0))== (void *) -1){
+                        TEST_ERROR
+                }
+                printf("TAXI=%d POSIZIONE=%d TARGET_SO=%d \n",i, taxi_list[i].pos,taxi_list[i].target);
+        }
+       
+
+        for(j=0; j<=my_mp->width; j++){
+                printf("=");               
+        }
+        printf("\n");
 }

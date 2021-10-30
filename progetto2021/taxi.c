@@ -19,6 +19,11 @@ int main(int argc,char *argv[]){
     int index;
     int targ_x,my_x,ex_x;
     int targ_y,my_y,ex_y;
+     struct sigaction sa;
+
+    bzero(&sa, sizeof(sa));  
+    sa.sa_handler = handle_signal; 
+    sigaction(SIGINT, &sa, NULL);
     
     
     /* configurazione memoria condivisa*/
@@ -43,7 +48,7 @@ int main(int argc,char *argv[]){
     /*impostare il tempo di vita*/
     taxi_list[my_id].my_pid = getpid();
     taxi_list[my_id].pos = atoi(argv[4]);
-
+    maps[atoi(argv[4])].num_taxi = my_id;
     /*alloco il taxi nella mappa*/
     allocate_taxi(taxi_list[my_id].x,taxi_list[my_id].y,my_id, maps, my_mp->width );
     /*Comunicazione dei taxi con il master*/
@@ -73,13 +78,10 @@ int main(int argc,char *argv[]){
             targ_x = maps[index].x;
             targ_y = maps[index].y;
             while(index!=-1 ) {
-                printf("TAXI = %d POS = %d TARG = %d \n",my_id, taxi_list[my_id].pos, taxi_list[my_id].target);
 
                 if(my_x<targ_x){
                     if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
-                        printf("list \n");
                         if(maps[(my_x+1)*my_mp->width+my_y].val_source != 0 ){
-                            printf("TAXI %d mando messaggio 1 \n", my_id);
                             mexSnd.msgc[1]=(my_x+1)*my_mp->width+my_y;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
                             index = -1; 
@@ -91,13 +93,9 @@ int main(int argc,char *argv[]){
                         my_x +=1;
                         nanosleep(&tim, NULL);
                     }
-                    
                 }else if(my_x>targ_x){
                     if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1 ){
-                                                printf("list \n");
-
                         if(maps[(my_x-1)*my_mp->width+my_y].val_source != 0 ){
-                            printf("TAXI %d mando messaggio 2 \n",my_id);
                             mexSnd.msgc[1]=(my_x-1)*my_mp->width+my_y;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0); 
                             index=-1;  
@@ -107,18 +105,12 @@ int main(int argc,char *argv[]){
                         maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
                         my_x -=1;
                         taxi_list[my_id].pos = (my_x-1)*my_mp->width+my_y;
-
                         nanosleep(&tim, NULL);
-
-
                     }
                 }
-        
                 if(my_y<targ_y){
-                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){
-                                
+                    if(semop(maps[(my_y)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){       
                         if(maps[(my_x)*my_mp->width+my_y+1].val_source != 0){
-                             printf("TAXI %d mando messaggio 3 \n", my_id);
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y+1;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);
                             index = -1;
@@ -132,8 +124,7 @@ int main(int argc,char *argv[]){
                    }
                 }else if(my_y>targ_y){
                     if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){
-                        if(maps[(my_x)*my_mp->width+my_y-1].val_source ==1){
-                            printf("TAXI %d mando messaggio 4 \n", my_id);
+                        if(maps[(my_x)*my_mp->width+my_y-1].val_source != 0){
                             mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
                             msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
                             index = -1;
@@ -146,12 +137,12 @@ int main(int argc,char *argv[]){
                         nanosleep(&tim, NULL);
                     }
                 }else if(my_x == targ_x && my_y == targ_y ){
-                    if(maps[(my_x)*my_mp->width+my_y].val_source ==1){
-                        printf("TAXI %d mando messaggio 5 \n", my_id);
-                        mexSnd.msgc[1]=(my_x)*my_mp->width+my_y-1;  
+                    if(maps[(my_x)*my_mp->width+my_y].val_source != 0){
+                        mexSnd.msgc[1]=(my_x)*my_mp->width+my_y;  
                         msgsnd(my_ks->msgq_id, &mexSnd, sizeof(mexSnd)-sizeof(long), 0);   
                         index = -1;
                     }
+
                 }
                     if(my_x==ex_x && my_y==ex_y){
                         break;
@@ -159,14 +150,11 @@ int main(int argc,char *argv[]){
                     ex_x=my_x;
                     ex_y=my_y;
             }
-
             taxi_list[my_id].x = my_x;
             taxi_list[my_id].y = my_y;    
         }
-         
+
        wait_zero(my_ks->sem_sync_round, END);  
     }
-    
-    
 }
 
