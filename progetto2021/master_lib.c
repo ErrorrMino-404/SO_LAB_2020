@@ -3,7 +3,7 @@
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsemr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -13,6 +13,7 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idsemr){
     new_s->maps_id = ids;
     new_s->msgq_id = idq;
     new_s->ks_shm_id = idm;
+    new_s->msgq_id_so = idqso;
     new_s->sem_sync_round = idsemr;
     return new_s;
 }
@@ -116,7 +117,7 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(maps[sem].val_holes != 1){
+        if(maps[sem].val_holes != 1 && maps[sem].num_taxi == -1){
             ok = 1;
             for(j =0; j<i; j++){
                 if(my_arr_so[j]==sem){
@@ -194,14 +195,10 @@ void print_metrics( maps_config * my_mp, int* array_id_taxi){
         for(j=0; j<=my_mp->width; j++){
                 printf("=");               
         }
-        for(i=0;i<my_mp->num_taxi;i++){
-                
-                if((taxi_list=(taxi_data*)shmat(array_id_taxi[i],NULL,0))== (void *) -1){
-                        TEST_ERROR
-                }
+        /*for(i=0;i<my_mp->num_taxi;i++){
                 printf("TAXI=%d POSIZIONE=%d TARGET_SO=%d \n",i, taxi_list[i].pos,taxi_list[i].target);
         }
-       
+       */
 
         for(j=0; j<=my_mp->width; j++){
                 printf("=");               

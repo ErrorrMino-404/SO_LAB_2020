@@ -5,7 +5,6 @@
 #include "config.h"
 #include "sem_lib.h"
 #include <sys/shm.h>
-#include <stdlib.h>
 
 typedef struct _slot{
     /*id del semaforo associato alla casella della mappa*/

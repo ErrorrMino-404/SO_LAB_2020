@@ -77,7 +77,7 @@ void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position
     printf("|\n");
     /*stampo movimenti taxi*/
       printf("\n\nSOURCE NELLA MAPPA : \n");
-    for(i=0;i < my_mp->source-1; i++){
+    for(i=0;i < my_mp->source; i++){
         printf("SOURCE = %d POS = %d \n",i,position_so[i]);
     }
     printf("\n");
