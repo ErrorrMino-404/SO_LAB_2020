@@ -18,13 +18,14 @@ typedef struct _keys_storage {
 
 struct message {
     long type;
-    int msgc[2];
+    int msgc[3];
 };
 typedef struct _taxi_data{
     pid_t my_pid;
     int target;     /*richiesta so da raggiungere taxi*/
     int dest;       /*destinazione della source*/
     int pos;        /*posizione all'interno della mappa*/
+    int car_so;     /*source che prende in carico il taxi*/
     int x;
     int y;
 }taxi_data;
@@ -38,7 +39,7 @@ typedef struct _source_data{
     int y;
 }source_data;
 
-keys_storage* fill_storage_shm(int, int, int, int,int, int);
+keys_storage* fill_storage_shm(int, int, int, int,int, int ,int);
 
 int get_rand_so(int,int);
 

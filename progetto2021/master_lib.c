@@ -3,7 +3,7 @@
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsemr){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsemr,int idp){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -15,6 +15,7 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->ks_shm_id = idm;
     new_s->msgq_id_so = idqso;
     new_s->sem_sync_round = idsemr;
+    new_s->sem_set_tx = idp;
     return new_s;
 }
 
@@ -129,7 +130,7 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
                 my_arr_so[i] = sem;
                 list_source[i].x=x;
                 list_source[i].y=y;
-                maps[sem].val_source = 1;
+                maps[sem].val_source = i;
                 i++;
             }
         }
@@ -145,7 +146,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
     for(i=0; i<num_taxi;i++){
         taxi[i].target = -1;
     }
-
+    printf("calcolo del target \n");
     for(i=0;position_so[i]!=-1 ;i++){
                 best=__INT_MAX__;
                 j=__INT_MAX__;
@@ -162,6 +163,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                 }
                 if(j!=__INT_MAX__){
                     taxi[j].target=position_so[i];
+                    printf("TAXI = %d SOURCE=%d \n", j,position_so[i]);
                 }
         }
         for(i=0;position_so[i]!=-1 ;i++){
@@ -181,9 +183,11 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         } 
                         if(j!=__INT_MAX__){
                             taxi[j].target=position_so[i];
+                            
                         }
                 }
         }
+        printf("termino target \n");
 }
 
 

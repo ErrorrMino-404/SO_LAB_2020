@@ -23,7 +23,7 @@ slot* create_maps(int height, int width,int maps_id){
                         maps[i*width+j].num_taxi = -1;
                         maps[i*width+j].x=i;
                         maps[i*width+j].y=j;
-                        maps[i*width+j].val_source = 0;
+                        maps[i*width+j].val_source = -1;
         }
     }
 

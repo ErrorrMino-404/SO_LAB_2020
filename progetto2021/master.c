@@ -5,7 +5,7 @@
 
 maps_config *my_mp;
 slot* maps;
-int gc_id_shm, mp_id_shm, ho_id_shm, so_id_shm,tx_id_shm,key_id_shm, msgq_id,msgq_id_so,sem_sync_round;
+int gc_id_shm,sem_set_tx, mp_id_shm, ho_id_shm, so_id_shm,tx_id_shm,key_id_shm, msgq_id,msgq_id_so,sem_sync_round;
 int *position_taxi, *position_so, *array_id_taxi;
 pid_t* taxi_pid,*so_pid;
 keys_storage *my_ks;
@@ -28,6 +28,7 @@ void handle_signal(int signum){
         print_maps(maps, my_mp,position_taxi,position_so);
         print_metrics(my_mp, array_id_taxi);
         /*rimozione semafori e code*/
+        semctl(sem_set_tx,0,IPC_RMID);
         semctl(sem_sync_round, 0, IPC_RMID);
         msgctl(msgq_id, IPC_RMID, 0);
         /*free dei puntatori*/
@@ -149,6 +150,14 @@ int main(){
                         }
                 }
     }
+    if((sem_set_tx=semget(IPC_PRIVATE, my_mp->num_taxi, IPC_CREAT|0666))==-1){
+        TEST_ERROR;
+    }
+    for(i=0; i<my_mp->num_taxi; i++){
+                if((init_sem_to_val(sem_set_tx, i, 0))==-1){
+                        TEST_ERROR 
+                }
+    }
     if((ho_id_shm=shmget(IPC_PRIVATE, (num_ho+1)*sizeof(int), IPC_CREAT|0666))==-1){
             TEST_ERROR;
     }
@@ -165,7 +174,7 @@ int main(){
         TEST_ERROR;
     }
     
-    my_ks = fill_storage_shm(key_id_shm, gc_id_shm, mp_id_shm, msgq_id,msgq_id_so,sem_sync_round);
+    my_ks = fill_storage_shm(key_id_shm, gc_id_shm, mp_id_shm, msgq_id,msgq_id_so,sem_sync_round,sem_set_tx);
     args_tx[1] = integer_to_string_arg(key_id_shm); /*id insieme delle chiavi*/
     /*args[2] id del taxi*/
     args_tx[3] = integer_to_string_arg(taxi_list_pos);
@@ -189,6 +198,7 @@ int main(){
     sleep(2);
     args_so[1] = integer_to_string_arg(key_id_shm); /*id insieme delle chiavi*/
     args_so[4] = integer_to_string_arg(source_list_pos);
+    args_so[5] = integer_to_string_arg(taxi_list_pos);
     position_so = randomize_coordinate_source(source_list,maps,my_mp, so_id_shm);
     for(i =0; i<my_mp->source;i++){
         switch(so_pid[i]=fork()){
@@ -205,6 +215,7 @@ int main(){
                 break;
         }
     }
+    sem_relase(sem_set_tx, 0);
     wait_zero(sem_sync_round, 0);
 
     print_maps(maps,my_mp,position_taxi,position_so);
@@ -221,25 +232,26 @@ int main(){
 
         increase_resource(sem_sync_round,START,my_mp->num_taxi);
 
-        print_maps(maps, my_mp,position_taxi,position_so);
         sem_reserve(sem_sync_round, WAIT);
         check_zero(sem_sync_round, START);
         printf("superato start \n");
         sem_relase(sem_sync_round, WAIT);
         printf("superato wait \n");
         
+        /*aspettare messaggio di aver preso la source*/
         while(num_so>0){
             if((msgrcv(my_ks->msgq_id, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0))==-1){
                 TEST_ERROR;
             }
-            
             position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
             printf("messaggio ricevuto da %d \n",mexRcv.msgc[0]);
-            printf("TAXI = %d DESTINAZIONE=%d \n",mexRcv.msgc[0],taxi_list[mexRcv.msgc[0]].dest);
+            printf("taxi=%d source=%d destinazione=%d \n", mexRcv.msgc[0],taxi_list[mexRcv.msgc[0]].car_so,taxi_list[mexRcv.msgc[0]].dest);
             num_so-=1;
         }
 
-
+        /*messaggi da ricevere quando il source raggiunge la destinazione*/
+        
+        
         increase_resource(sem_sync_round,END,my_mp->num_taxi);
         print_maps(maps,my_mp,position_taxi,position_so);
         check_zero(sem_sync_round,END);
