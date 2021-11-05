@@ -215,7 +215,6 @@ int main(){
                 break;
         }
     }
-    sem_relase(sem_set_tx, 0);
     wait_zero(sem_sync_round, 0);
 
     print_maps(maps,my_mp,position_taxi,position_so);
@@ -244,13 +243,27 @@ int main(){
                 TEST_ERROR;
             }
             position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
-            printf("messaggio ricevuto da %d \n",mexRcv.msgc[0]);
             printf("taxi=%d source=%d destinazione=%d \n", mexRcv.msgc[0],taxi_list[mexRcv.msgc[0]].car_so,taxi_list[mexRcv.msgc[0]].dest);
             num_so-=1;
         }
-
+     
+        print_maps(maps,my_mp,position_taxi,position_so);
+        increase_resource(sem_sync_round,END,my_mp->num_taxi);
+        increase_resource(sem_sync_round,START,my_mp->num_taxi);
+        sem_reserve(sem_sync_round, WAIT);
+        check_zero(sem_sync_round, START);
+        sem_relase(sem_sync_round, WAIT);
         /*messaggi da ricevere quando il source raggiunge la destinazione*/
-        
+        num_so = my_mp->source;
+        while(num_so>0){
+            if((msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0))==-1){
+                TEST_ERROR;
+            }
+            printf("ho raggiunto la destinazione del source 2 taxi=%d posizione=%d\n",mexRcv.msgc[0], mexRcv.msgc[1]);
+            position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
+
+            num_so -=1;
+        }
         
         increase_resource(sem_sync_round,END,my_mp->num_taxi);
         print_maps(maps,my_mp,position_taxi,position_so);

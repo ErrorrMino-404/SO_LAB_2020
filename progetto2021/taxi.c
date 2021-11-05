@@ -70,10 +70,7 @@ int main(int argc,char *argv[]){
     while(1){
         check_zero(my_ks->sem_sync_round, WAIT);
         wait_zero(my_ks->sem_sync_round, START);
-        sem_reserve(my_ks->sem_set_tx, my_id);
-        printf("riprendo il semaforo 1\n");
-        if(taxi_list[my_id].target > 0){
-            
+        if(taxi_list[my_id].target != -1){
             my_x = maps[atoi(argv[4])].x;
             my_y = maps[atoi(argv[4])].y;
             index = taxi_list[my_id].target;
@@ -107,7 +104,7 @@ int main(int argc,char *argv[]){
                             maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
                             my_y +=1;
                             nanosleep(&tim, NULL);
-                    }
+                        }
                     }
                      if(my_y>targ_y ){
                         if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){
@@ -125,32 +122,22 @@ int main(int argc,char *argv[]){
                                 mexSndSO.msgc[0] = atoi(argv[2]);
                                 mexSndSO.msgc[1] = (my_x)*my_mp->width+my_y;
                                 mexSndSO.msgc[2] = maps[(my_x)*my_mp->width+my_y].val_source;
-                                msgsnd(my_ks->msgq_id_so, &mexSndSO, sizeof(mexSndSO)-sizeof(long),0);
-                                sleep(1);
+                                msgsnd(my_ks->msgq_id_so, &mexSndSO, sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
                                 /*messaggio da ricevere dalla source*/
-                                i=0;
-                                while(i<1){
-                                    msgrcv(my_ks->msgq_id_so, &mexRcv,sizeof(mexRcv)-sizeof(long),0);
+                                
+                                
+                                    msgrcv(my_ks->msgq_id_so, &mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
                                     taxi_list[my_id].dest = mexRcv.msgc[1];
                                     i++;
-                                }
+                                
                                 taxi_list[my_id].car_so = maps[(my_x)*my_mp->width+my_y].val_source;
                                 mexSnd.msgc[1]= taxi_list[my_id].pos;
                                 mexSnd.msgc[2] = taxi_list[my_id].dest;
-                                msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),0);
-                                
+                                msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                                 index = -1;
                             }
                     }
-                
-                                                /*controllo deadlock*/
-                    if(my_x==ex_x&&my_y==ex_y){
-                                        break;
-                    }
-                    ex_x=my_x;
-                    ex_y=my_y;
-
-                 
+                                 
             }
       
             taxi_list[my_id].x = my_x;
@@ -158,17 +145,17 @@ int main(int argc,char *argv[]){
             taxi_list[my_id].pos = my_x*my_mp->width+my_y;  
             
         }
-        printf("sono uscito dal semaforo1\n");
-        sem_relase(my_ks->sem_set_tx, (my_id+1)%my_mp->num_taxi);
-        printf("riprendo il semaforo 2\n");
-        sem_reserve(my_ks->sem_set_tx, my_id);
-        /*ora iniziamo lo spostamento per la source verso la destinazione */
+        wait_zero(my_ks->sem_sync_round, END);
+        check_zero(my_ks->sem_sync_round, WAIT);
+        wait_zero(my_ks->sem_sync_round, START);
+                /*ora iniziamo lo spostamento per la source verso la destinazione */
+        int index2 = taxi_list[my_id].dest;
         if(taxi_list[my_id].dest != -1){
             dest_x = maps[taxi_list[my_id].dest].x;
             dest_y = maps[taxi_list[my_id].dest].y;
             my_x = maps[taxi_list[my_id].pos].x;
             my_y = maps[taxi_list[my_id].pos].y;
-            while(taxi_list[my_id].dest != -1){
+            while(index2!=-1){
                 if(my_x>dest_x){
                         if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
 
@@ -201,7 +188,6 @@ int main(int argc,char *argv[]){
                 }
                 if(my_y<dest_y){
                         if(semop(maps[(my_x)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){
-
                             maps[my_x*my_mp->width+my_y].num_taxi = -1;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
@@ -210,21 +196,18 @@ int main(int argc,char *argv[]){
                         }
                 }
                 if(my_y==dest_y && my_x==dest_x){
-                            if(maps[(my_x)*my_mp->width+my_y].val_source != -1){
-                                
-                                taxi_list[my_id].car_so = maps[(my_x)*my_mp->width+my_y].val_source;
-                                mexSnd.msgc[1]= taxi_list[my_id].pos;
-                                mexSnd.msgc[2] = taxi_list[my_id].dest;
-                                msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),0);
-                                
-                                index = -1;
-                            }
+                    
+                    printf("raggiunto la destinazione\n");
+                    taxi_list[my_id].pos = (dest_x)*my_mp->width+dest_y;
+                    mexSnd.msgc[1]= taxi_list[my_id].pos;
+                    msgsnd(my_ks->msgq_id_so, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0); 
+                    printf("messaggio inviato \n"); 
+                    index2 = -1;          
                 }
             }
         }
-        printf("sono uscito dal semaforo 2\n");
+  
 
-        sem_relase(my_ks->sem_set_tx, (my_id+1)%my_mp->num_taxi);
         wait_zero(my_ks->sem_sync_round, END);  
     }
 }

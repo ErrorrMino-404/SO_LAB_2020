@@ -1,3 +1,4 @@
+
 #define _GNU_SOURCE
 
 #include "master_lib.h"
@@ -43,9 +44,10 @@ int main (int argc, char *argv[]){
     my_id = atoi(argv[2]);
     source[my_id].my_pid = my_id;
     source[my_id].origin = atoi(argv[3]);
-    source[my_id].destin = randomize_dest(source[my_id].origin, my_mp);
+    source[my_id].destin = randomize_dest(source[my_id].origin, my_mp,source,maps);
     mexRcv.type = TAXI_TO_SOURCE;
     mexSndSO.type = SOURCE_TO_TAXI;
+    mexSndSO.msgc[0]=my_id;
    
     sleep(2);
         /*la source riceve messaggio dal taxi dandogli il suo id e posizione*/
@@ -56,9 +58,8 @@ int main (int argc, char *argv[]){
             source[mexRcv.msgc[2]].my_taxi = mexRcv.msgc[0];
             mexSndSO.msgc[1] = source[mexRcv.msgc[2]].destin;
             if(source[mexRcv.msgc[2]].origin == mexRcv.msgc[1]){
-                printf("corretto\n");
                 /*invio della mia destinazione al taxi*/
-                msgsnd(my_ks->msgq_id_so, &mexSndSO,sizeof(mexSndSO)-sizeof(long),0);
+                msgsnd(my_ks->msgq_id_so, &mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
                  i--;
             }  
         }

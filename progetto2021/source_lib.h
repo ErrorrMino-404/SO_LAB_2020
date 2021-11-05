@@ -5,7 +5,7 @@
 #include "config.h"
 
 
-int randomize_dest (int, maps_config*);
+int randomize_dest (int, maps_config*,source_data*,slot*);
 
 
 #endif
