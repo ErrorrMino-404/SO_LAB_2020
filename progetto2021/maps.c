@@ -60,7 +60,7 @@ void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position
                     }else if(sem_m != 0 && maps[i*my_mp->width+j].val_holes!= 0){
                         printf("X");
                         u += 1;
-                    }else if(maps[i*my_mp->width+j].num_taxi < my_mp->num_taxi){
+                    }else if(maps[i*my_mp->width+j].num_taxi != -1){
                        
                         printf("1" );
 

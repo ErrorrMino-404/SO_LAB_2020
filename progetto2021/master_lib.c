@@ -1,4 +1,5 @@
 #include "master_lib.h"
+#include <stdio.h>
 
 
 
@@ -53,7 +54,7 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
             }
             if(ok==1){
                 my_arr[i]=tmp_index;
-                maps[tmp_index].val_holes = 1; /*la holes è attiva  */              
+                maps[tmp_index].val_holes = 1; /*la holes è attiva  */  
                 i++;
             }
         }
@@ -118,7 +119,7 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(maps[sem].val_holes != 1 && maps[sem].num_taxi == -1){
+        if(maps[sem].val_holes == 0 && maps[sem].num_taxi == -1){
             ok = 1;
             for(j =0; j<i; j++){
                 if(my_arr_so[j]==sem){
@@ -183,6 +184,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         } 
                         if(j!=__INT_MAX__){
                             taxi[j].target=position_so[i];
+                            
                             
                         }
                 }

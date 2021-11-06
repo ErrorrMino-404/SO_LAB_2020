@@ -224,8 +224,11 @@ int main(){
     sigaddset(&my_mask, SIGINT);           
 	sigprocmask(SIG_UNBLOCK, &my_mask, NULL);
 
-    num_so = my_mp->source;
+    
+    i = my_mp->source;
+    num_so = 0;
     mexRcv.type = TAXI_TO_MASTER;
+    int j;
     while(1){
         compute_targets(taxi_list,  my_mp->num_taxi,maps,position_so);
 
@@ -233,40 +236,52 @@ int main(){
 
         sem_reserve(sem_sync_round, WAIT);
         check_zero(sem_sync_round, START);
-        printf("superato start \n");
         sem_relase(sem_sync_round, WAIT);
-        printf("superato wait \n");
-        
+        for( j = 0; j<my_mp->source;j++){
+                position_so[j] = -1;
+            }
         /*aspettare messaggio di aver preso la source*/
-        while(num_so>0){
+        while(i>0){
+            
+           
             if((msgrcv(my_ks->msgq_id, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0))==-1){
                 TEST_ERROR;
             }
             position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
             printf("taxi=%d source=%d destinazione=%d \n", mexRcv.msgc[0],taxi_list[mexRcv.msgc[0]].car_so,taxi_list[mexRcv.msgc[0]].dest);
-            num_so-=1;
+            
+            if(mexRcv.msgc[2] == -1){
+                printf("DEVO RITROVARE IL SOURCE %d \n",taxi_list[mexRcv.msgc[0]].target);
+                position_so[0] = taxi_list[mexRcv.msgc[0]].target;
+                position_taxi[mexRcv.msgc[0]] = taxi_list[mexRcv.msgc[0]].pos;
+                num_so++;
+            }
+            
+            i-=1;
         }
-     
+        i = num_so;
+        
+        printf("val pos[0] = %d", position_so[0]);
         print_maps(maps,my_mp,position_taxi,position_so);
+        compute_targets(taxi_list,  my_mp->num_taxi,maps,position_so);
+
         increase_resource(sem_sync_round,END,my_mp->num_taxi);
-        increase_resource(sem_sync_round,START,my_mp->num_taxi);
+        /*increase_resource(sem_sync_round,START,my_mp->num_taxi);
         sem_reserve(sem_sync_round, WAIT);
         check_zero(sem_sync_round, START);
         sem_relase(sem_sync_round, WAIT);
-        /*messaggi da ricevere quando il source raggiunge la destinazione*/
-        num_so = my_mp->source;
-        while(num_so>0){
+        i = my_mp->source-num_so;
+        while(i>0){
             if((msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0))==-1){
                 TEST_ERROR;
             }
             printf("ho raggiunto la destinazione del source 2 taxi=%d posizione=%d\n",mexRcv.msgc[0], mexRcv.msgc[1]);
             position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
-
-            num_so -=1;
-        }
+            i -=1;
+        }*/
         
-        increase_resource(sem_sync_round,END,my_mp->num_taxi);
-        print_maps(maps,my_mp,position_taxi,position_so);
+        
+        /*increase_resource(sem_sync_round,END,my_mp->num_taxi);*/
         check_zero(sem_sync_round,END);
     
     
