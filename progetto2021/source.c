@@ -42,7 +42,7 @@ int main (int argc, char *argv[]){
         TEST_ERROR;
     }
     my_id = atoi(argv[2]);
-    source[my_id].my_pid = my_id;
+    source[my_id].my_pid = getpid();
     source[my_id].origin = atoi(argv[3]);
     source[my_id].destin = randomize_dest(source[my_id].origin, my_mp,source,maps);
     mexRcv.type = TAXI_TO_SOURCE;
@@ -51,17 +51,17 @@ int main (int argc, char *argv[]){
    
     sleep(2);
         /*la source riceve messaggio dal taxi dandogli il suo id e posizione*/
-
-        i = 1;
-        while(i>0){
+    
+        i = 0;
+        while(i < 1){
             msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0);
             source[mexRcv.msgc[2]].my_taxi = mexRcv.msgc[0];
             mexSndSO.msgc[1] = source[mexRcv.msgc[2]].destin;
             if(source[mexRcv.msgc[2]].origin == mexRcv.msgc[1]){
                 /*invio della mia destinazione al taxi*/
                 msgsnd(my_ks->msgq_id_so, &mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
-                 i--;
-            }  
+                
+            }
         }
 
                 

@@ -56,4 +56,5 @@ void print_metrics(maps_config*,int*);
 
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);
+void new_taxi (maps_config* , slot* , int* , pid_t* , int ,int* ,int ,int,int );
 #endif

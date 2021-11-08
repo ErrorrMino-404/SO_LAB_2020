@@ -20,7 +20,7 @@ slot* create_maps(int height, int width,int maps_id){
             }
                         maps[i*width+j].c_sem_id=sem_id;
                         maps[i*width+j].val_holes = 0;
-                        maps[i*width+j].num_taxi = -1;
+                        maps[i*width+j].num_taxi = 0;
                         maps[i*width+j].x=i;
                         maps[i*width+j].y=j;
                         maps[i*width+j].val_source = -1;
@@ -55,15 +55,13 @@ void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position
                     if((sem_m = semctl(maps[i*my_mp->width+j].c_sem_id,0, GETVAL))==-1){
                         TEST_ERROR;
                     }
-                    if(sem_m!=0 && maps[i*my_mp->width+j].val_holes == 0){
+                    if(sem_m!=0 && maps[i*my_mp->width+j].val_holes == 0 && maps[i*my_mp->width+j].num_taxi == 0){
                         printf(" ");
                     }else if(sem_m != 0 && maps[i*my_mp->width+j].val_holes!= 0){
                         printf("X");
                         u += 1;
-                    }else if(maps[i*my_mp->width+j].num_taxi != -1){
-                       
+                    }else if(maps[i*my_mp->width+j].num_taxi > 0){
                         printf("1" );
-
                     }reset();
                         
                         if(j==my_mp->width-1){
@@ -82,7 +80,7 @@ void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position
     }
     printf("\n");
     printf("TAXI NELLA MAPPA : \n");
-    for(i=0;i < my_mp->num_taxi; i++){
+    for(i=1;i < my_mp->num_taxi+1; i++){
         printf("TAXI = %d POS = %d \n",i,position_taxi[i]);
     }
    

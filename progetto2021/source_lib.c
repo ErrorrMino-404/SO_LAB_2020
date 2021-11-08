@@ -1,5 +1,6 @@
 #include "source_lib.h"
 #include "master_lib.h"
+#include "sem_lib.h"
 
 int randomize_dest(int pos, maps_config* my_mp,source_data* source,slot* maps){
     int x,y,sem,i,j;
@@ -12,7 +13,8 @@ int randomize_dest(int pos, maps_config* my_mp,source_data* source,slot* maps){
         sem = x*my_mp->width+y; 
         i++;
         for(j=0; j<my_mp->source; j++){
-            if(sem == source[j].destin && semctl(maps[sem].c_sem_id,0,GETVAL)){
+            if(sem == source[j].destin||maps[sem].val_holes==1||maps[sem].num_taxi!= 0 
+            || sem == pos ){
                 i = 0;
             }
         }     
