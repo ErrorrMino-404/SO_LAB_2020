@@ -39,7 +39,7 @@ void clean_sem_maps(int height, int width, slot* maps){
 }
 
 void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position_so){
-    int i, j,u;
+    int i, j,u,x;
     int sem_m;
 
     /*stampa mappa*/
@@ -61,7 +61,11 @@ void print_maps(slot* maps, maps_config* my_mp, int* position_taxi,int* position
                         printf("X");
                         u += 1;
                     }else if(maps[i*my_mp->width+j].num_taxi > 0){
-                        printf("1" );
+                        for(x = 1; x<my_mp->num_taxi+1; x++){
+                            if(position_taxi[x] == i*my_mp->width+j ){
+                                printf("1" );
+                            }
+                        }
                     }reset();
                         
                         if(j==my_mp->width-1){

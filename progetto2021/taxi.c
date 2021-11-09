@@ -48,15 +48,15 @@ int main(int argc,char *argv[]){
     /*inizializzo struct del taxi*/
     my_id = atoi(argv[2]);
     /*impostare il tempo di vita*/
-    printf("taxi %d creato pos = %d",my_id,atoi(argv[4]));
     taxi_list[my_id].my_pid = getpid();
     taxi_list[my_id].pos = atoi(argv[4]);
     taxi_list[my_id].dest = -1;
+    taxi_list[my_id].target = -1;
     maps[atoi(argv[4])].num_taxi = my_id;
     /*alloco il taxi nella mappa*/
     allocate_taxi(taxi_list[my_id].x,taxi_list[my_id].y,my_id, maps, my_mp->width );
     /*Comunicazione dei taxi con il master*/
-    wait_zero(my_ks->sem_sync_round, 0);
+
     mexSnd.type = TAXI_TO_MASTER;
     mexSndSO.type = TAXI_TO_SOURCE;
     mexRcv.type = SOURCE_TO_TAXI;
@@ -68,9 +68,9 @@ int main(int argc,char *argv[]){
 
     tim.tv_nsec=0;
     tim.tv_nsec=(long)1000000;
-    
     /*spostamento del taxi nella mappa*/
     while(1){
+        printf("sono arrivato qua %d \n", my_id);
         check_zero(my_ks->sem_sync_round, WAIT);
         wait_zero(my_ks->sem_sync_round, START);
         if(taxi_list[my_id].target != -1){
@@ -142,16 +142,16 @@ int main(int argc,char *argv[]){
                                 taxi_list[my_id].dest = mexRcv.msgc[1];
                                     
                                 taxi_list[my_id].car_so = maps[(my_x)*my_mp->width+my_y].val_source;
-                                mexSnd.msgc[1]= taxi_list[my_id].pos;
+                                mexSnd.msgc[1]= (my_x)*my_mp->width+my_y;
                                 mexSnd.msgc[2] = 1;
                                 msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                                 index = -1;
                             }
                             
                     }if(my_x == ex_x && my_y == ex_y ){
-                         sem = 0;
-                        /*nel caso in cui non venga raggiunta la posizione si randomizza nella mappa*/
+                        sem = 0;
                         maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                        /*nel caso in cui non venga raggiunta la posizione si randomizza nella mappa*/
                         sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                         srand(time(NULL));
                         while(sem < 1){
@@ -163,8 +163,8 @@ int main(int argc,char *argv[]){
                                     sem++;
                             }
                         }
-                            mexSnd.msgc[1]= taxi_list[my_id].pos;
-                            mexSnd.msgc[2] = -1;
+                            mexSnd.msgc[1] = (my_x)*my_mp->width+my_y;  /*posizione attuale del taxi*/
+                            mexSnd.msgc[2] = -1; /*non andato a buon fine*/
                             msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                             
                         break;
