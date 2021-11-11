@@ -10,7 +10,8 @@ typedef struct _keys_storage {
     int conf_id;            /*configurazione id*/
     int maps_id;            /*id mappa */
     int msgq_id;            /*id della coda dei messaggi*/
-    int msgq_id_so;
+    int msgq_id_so;         /*id messaggi condivisi tra source e taxi*/
+    int msgq_id_sm;         /*messaggi condivisi tra source e master*/
     int round_source_id ;   /*id del puntatore al source*/
     int sem_set_tx;
     int sem_sync_round;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
@@ -39,7 +40,7 @@ typedef struct _source_data{
     int y;
 }source_data;
 
-keys_storage* fill_storage_shm(int, int, int, int,int, int ,int);
+keys_storage* fill_storage_shm(int, int, int, int,int,int, int ,int);
 
 int get_rand_so(int,int);
 
@@ -56,5 +57,5 @@ void print_metrics(maps_config*,int*);
 
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);
-void new_taxi (maps_config* , slot* , int* , pid_t* , int ,int* ,int ,int,int );
+
 #endif

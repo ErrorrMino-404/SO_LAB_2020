@@ -6,6 +6,5 @@
 
 
 int randomize_dest (int, maps_config*,source_data*,slot*);
-
-
+int randomize_origin( maps_config*, source_data*,slot*);
 #endif

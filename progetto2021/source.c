@@ -17,6 +17,7 @@ int main (int argc, char *argv[]){
     taxi_data* my_taxi;
     source_data* source;
     struct message mexSndSO;
+    struct message mexSndSM;
     struct message mexRcv;
     struct sigaction sa;
 
@@ -47,25 +48,32 @@ int main (int argc, char *argv[]){
     source[my_id].destin = randomize_dest(source[my_id].origin, my_mp,source,maps);
     mexRcv.type = TAXI_TO_SOURCE;
     mexSndSO.type = SOURCE_TO_TAXI;
+    mexSndSM.type = SOURCE_TO_MASTER;
+
+    mexSndSM.msgc[0] = atoi(argv[3]);
     mexSndSO.msgc[0]=my_id;
    
     sleep(2);
         /*la source riceve messaggio dal taxi dandogli il suo id e posizione*/
-    
+    while(1){
+
+        
+
         i = 0;
         while(i < 1){
+            msgsnd(my_ks->msgq_id_sm, &mexSndSM,sizeof(mexSndSM)-sizeof(long),mexSndSM.type,0);
+
+
             msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0);
             source[mexRcv.msgc[2]].my_taxi = mexRcv.msgc[0];
             mexSndSO.msgc[1] = source[mexRcv.msgc[2]].destin;
             if(source[mexRcv.msgc[2]].origin == mexRcv.msgc[1]){
                 /*invio della mia destinazione al taxi*/
                 msgsnd(my_ks->msgq_id_so, &mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
-                
+                i = 1;
             }
         }
 
-                
-
-    
+    }
     /*source che impostano una loro destinazione */
 }
