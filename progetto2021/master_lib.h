@@ -27,6 +27,8 @@ typedef struct _taxi_data{
     int dest;       /*destinazione della source*/
     int pos;        /*posizione all'interno della mappa*/
     int car_so;     /*source che prende in carico il taxi*/
+    int move;       /*movimento del taxi*/
+    int exp_so;     /*source prese in carico*/
     int x;
     int y;
 }taxi_data;
@@ -57,5 +59,9 @@ void print_metrics(maps_config*,int*);
 
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);
+
+int calculate_top_taxi(taxi_data*,int);
+
+int calculate_taxi_succes(taxi_data*,int);
 
 #endif

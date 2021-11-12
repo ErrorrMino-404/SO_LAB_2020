@@ -50,9 +50,14 @@ int main(int argc,char *argv[]){
     taxi_list[my_id].pos = atoi(argv[4]);
     taxi_list[my_id].dest = -1;
     taxi_list[my_id].target = -1;
+    taxi_list[my_id].move = 0;
+    taxi_list[my_id].exp_so = 0;
     maps[atoi(argv[4])].num_taxi = my_id;
+
     /*alloco il taxi nella mappa*/
     allocate_taxi(taxi_list[my_id].x,taxi_list[my_id].y,my_id, maps, my_mp->width );
+    wait_zero(my_ks->sem_sync_round, 0);
+
     /*Comunicazione dei taxi con il master*/
 
     mexSnd.type = TAXI_TO_MASTER;
@@ -83,15 +88,19 @@ int main(int argc,char *argv[]){
                 
                     if(my_x<targ_x ){
                         if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
-                            maps[my_x*my_mp->width+my_y].num_taxi = 0;
+                            maps[my_x*my_mp->width+my_y].num_taxi = 0;      /*nessun taxi sulla casella*/
+                            taxi_list[my_id].move +=1;                      /*movimento del taxi*/
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;    /*passato un taxi sopra*/
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
                             my_x +=1;
+                            
                             nanosleep(&tim, NULL);
                         }
                     }if(my_x>targ_x ){
                         if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
-                            
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
@@ -100,6 +109,8 @@ int main(int argc,char *argv[]){
                         }
                     }if(my_y<targ_y ){
                         if(semop(maps[(my_x)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){ 
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
@@ -108,7 +119,8 @@ int main(int argc,char *argv[]){
                         }
                     }if(my_y>targ_y ){
                         if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){
-                            
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
@@ -124,14 +136,13 @@ int main(int argc,char *argv[]){
                                 mexSndSO.msgc[1] = (my_x)*my_mp->width+my_y;
                                 mexSndSO.msgc[2] = maps[(my_x)*my_mp->width+my_y].val_source;
                                 msgsnd(my_ks->msgq_id_so, &mexSndSO, sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
-                                
                                 /*messaggio da ricevere dalla source*/
                                 msgrcv(my_ks->msgq_id_so, &mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
                                 taxi_list[my_id].dest = mexRcv.msgc[1];
-                                    
+                                /*messaggio inviato al master*/
                                 taxi_list[my_id].car_so = maps[(my_x)*my_mp->width+my_y].val_source;
                                 mexSnd.msgc[1]= (my_x)*my_mp->width+my_y;
-                                mexSnd.msgc[2] = 1; /*andato a buonfine*/
+                                mexSnd.msgc[2] = 1; 
                                 msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                                 index = -1;
                             }
@@ -166,7 +177,8 @@ int main(int argc,char *argv[]){
             while(index2!=-1){
                 if(my_x>dest_x){
                         if(semop(maps[(my_x-1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
-
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
@@ -176,6 +188,8 @@ int main(int argc,char *argv[]){
                 }
                 if(my_x<dest_x){
                         if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
@@ -185,7 +199,8 @@ int main(int argc,char *argv[]){
                 }
                 if(my_y>dest_y){
                         if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){
-
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
@@ -195,6 +210,8 @@ int main(int argc,char *argv[]){
                 }
                 if(my_y<dest_y){
                         if(semop(maps[(my_x)*my_mp->width+my_y+1].c_sem_id,&sops,1)!=-1){
+                            maps[my_x*my_mp->width+my_y].top_cells += 1;
+                            taxi_list[my_id].move +=1;
                             maps[my_x*my_mp->width+my_y].num_taxi = 0;
                             sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
                             maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;

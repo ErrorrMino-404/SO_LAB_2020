@@ -189,6 +189,28 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                 }
         }
 }
+int calculate_top_taxi(taxi_data *taxi,int max){
+    int top_taxi=0;
+    int x,out;
+    for(x=1; x<max;x++){
+        if(top_taxi<taxi[x].move){
+            top_taxi = taxi[x].move;
+            out = x;
+        }
+    }
+    return out ;
+}
+int calculate_taxi_succes(taxi_data *taxi,int max){
+    int top_taxi=0;
+    int x,out;
+    for(x=1; x<max;x++){
+        if(top_taxi<taxi[x].exp_so){
+            top_taxi = taxi[x].exp_so;
+            out = x;
+        }
+    }
+    return out ;
+}
 
 
 void print_metrics( maps_config * my_mp, int* array_id_taxi){

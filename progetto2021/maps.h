@@ -13,6 +13,8 @@ typedef struct _slot{
     int val_source;
     int val_holes;
     int num_taxi;
+    int attr; /*quanto è stata attreversata la casella*/
+    int top_cells;
     /*grandezza della scacchiera*/
     int x;
     int y;
@@ -20,7 +22,7 @@ typedef struct _slot{
 
 slot* create_maps (int, int, int);
 
-void print_maps(slot*, maps_config*,int*,int*);
+void print_maps(slot*, maps_config*,int*,int,int,int,int,int);
 
 void clean_sem_maps(int, int, slot*);
 

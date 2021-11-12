@@ -35,7 +35,9 @@ maps_config *init_maps_config(int shm_id){
                         my_maps->min_taxi_cell = find_value(line);
                 }else if(strstr(line,"SO_CAP_MAX")!= NULL){
                         my_maps->max_taxi_cell = find_value(line);
-                }else {
+                }else if(strstr(line,"SO_TOP_CELLS")!= NULL){
+                        my_maps->top_cells = find_value(line);
+                }else{
                        TEST_ERROR;
                 }
         }
