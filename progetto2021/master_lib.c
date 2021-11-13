@@ -120,7 +120,7 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(maps[sem].val_holes == 0 && maps[sem].num_taxi == 0){
+        if(maps[sem].val_holes == 0 ){
             ok = 1;
             for(j =0; j<i; j++){
                 if(my_arr_so[j]==sem){
@@ -148,6 +148,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
     for(i=1; i<num_taxi+1;i++){
         taxi[i].target = -1;
     }
+    printf("TARGET DA AVERE \n");
     for(i=0;position_so[i]!=-1 ;i++){
                 best=__INT_MAX__;
                 j=__INT_MAX__;
@@ -164,6 +165,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                 }
                 if(j!=__INT_MAX__){
                     taxi[j].target=position_so[i];
+                    printf("TAXI=%d SOURCE=%d \n",j,position_so[i]);
                 }
         }
         for(i=0;position_so[i]!=-1 ;i++){
@@ -188,10 +190,11 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         }
                 }
         }
+    printf("TERMINAZIONE TARGET \n");
 }
 int calculate_top_taxi(taxi_data *taxi,int max){
     int top_taxi=0;
-    int x,out;
+    int x,out = 0;
     for(x=1; x<max;x++){
         if(top_taxi<taxi[x].move){
             top_taxi = taxi[x].move;
@@ -202,7 +205,7 @@ int calculate_top_taxi(taxi_data *taxi,int max){
 }
 int calculate_taxi_succes(taxi_data *taxi,int max){
     int top_taxi=0;
-    int x,out;
+    int x,out = 0;
     for(x=1; x<max;x++){
         if(top_taxi<taxi[x].exp_so){
             top_taxi = taxi[x].exp_so;
