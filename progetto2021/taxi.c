@@ -13,9 +13,20 @@
     struct timespec tim;
 
 void handle_signal(){
-    taxi_list[my_id].my_pid = my_id;
-    wait_zero(my_ks->sem_sync_round, END);  
-
+    if(taxi_list[my_id].target != -1){
+        printf("passato troppo tempo \n");
+        /*nel caso in cui non venga raggiunta la posizione si randomizza nella mappa*/
+        mexSnd.msgc[0] = my_id;
+        mexSnd.msgc[1] = taxi_list[my_id].pos;  /*posizione attuale del taxi*/
+        mexSnd.msgc[2] = -1; /*non andato a buon fine*/
+        sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
+        msgsnd(my_ks->msgq_id, &mexSnd,sizeof(mexSnd)-sizeof(long),mexSnd.type,0);  
+     
+    }else{
+        sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
+        taxi_list[my_id].my_pid = my_id;
+        wait_zero(my_ks->sem_sync_round, END);  
+    }
 }
 
 int main(int argc,char *argv[]){
@@ -45,7 +56,6 @@ int main(int argc,char *argv[]){
     taxi_list[my_id].my_pid = getpid();
     taxi_list[my_id].pos = atoi(argv[4]);
     taxi_list[my_id].dest = -1;
-    taxi_list[my_id].target = -1;
     taxi_list[my_id].move = 0;
     taxi_list[my_id].exp_so = 0;
     maps[atoi(argv[4])].num_taxi = my_id;
@@ -75,14 +85,13 @@ int main(int argc,char *argv[]){
         wait_zero(my_ks->sem_sync_round, START);
         alarm(1);
         if(taxi_list[my_id].target != -1){
-            
+            printf("cerco la source \n");
             my_x = maps[atoi(argv[4])].x;
             my_y = maps[atoi(argv[4])].y;
             index = taxi_list[my_id].target;
             targ_x = maps[index].x;
             targ_y = maps[index].y;
             while(index!=-1 ) { 
-                
                     if(my_x<targ_x ){
                         if(semop(maps[(my_x+1)*my_mp->width+my_y].c_sem_id,&sops,1)!=-1){
                             alarm(0);
@@ -173,7 +182,7 @@ int main(int argc,char *argv[]){
             }
             
             
-        }
+        
         if(taxi_list[my_id].dest != -1){
             dest_x = maps[taxi_list[my_id].dest].x;
             dest_y = maps[taxi_list[my_id].dest].y;
@@ -240,6 +249,12 @@ int main(int argc,char *argv[]){
                 }
                 if(my_y==dest_y && my_x==dest_x){
                         alarm(0);
+                        /*invio un messaggio alla source sono arrivato a destinazione*/
+                        mexSndSO.msgc[0]=taxi_list[my_id].car_so;
+                        mexSndSO.msgc[1]=my_x*my_mp->width+my_y;
+                        mexSndSO.msgc[2] = 1;
+                        msgsnd(my_ks->msgq_id_so,&mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
+
                         taxi_list[my_id].pos = my_x*my_mp->width+my_y;
                         taxi_list[my_id].dest = -1;
                         mexSnd.msgc[0] = my_id;
@@ -247,16 +262,21 @@ int main(int argc,char *argv[]){
                         mexSnd.msgc[2] = 1;
                         msgsnd(my_ks->msgq_id_ds, &mexSnd, sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                         index2 = -1;
-                    
+                        
                 }
                 if(my_x == ex_x && my_y == ex_y){
                     sem_relase(maps[my_x*my_mp->width+my_y].c_sem_id, 0);
+                    /*invio un messaggio alla source non sono arrivato a destinazione*/
+                    mexSndSO.msgc[0]=taxi_list[my_id].car_so;
+                    mexSndSO.msgc[1]=my_x*my_mp->width+my_y;
+                    mexSndSO.msgc[2] = -1;
+                    msgsnd(my_ks->msgq_id_so,&mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
+
                     mexSnd.msgc[0] = my_id;
-                    mexRcv.msgc[1] = my_x*my_mp->width+my_y;  
+                    mexSnd.msgc[1] = my_x*my_mp->width+my_y;  
                     mexSnd.msgc[2] = -1;
                     msgsnd(my_ks->msgq_id_ds, &mexSnd, sizeof(mexSnd)-sizeof(long),mexSnd.type,0);
                     break;
-
                 }
                     ex_x = my_x;
                     ex_y = my_y;  
@@ -266,6 +286,7 @@ int main(int argc,char *argv[]){
            
 
         }
+    }
     wait_zero(my_ks->sem_sync_round, END);  
         
     }

@@ -49,7 +49,7 @@ void merge (int* a, int left, int center, int right){
     int b[right-left+1];
 
     while(i<=center&&j<=right){
-        if(a[i]<=a[j]){
+        if(a[i]>=a[j]){
             b[k]=a[i];
             i ++;
         }else {
@@ -142,9 +142,9 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
     mergesort(mov_cell,0,my_mp->width*my_mp->height);
 
     j=0;
-    for(x=my_mp->height*my_mp->width;x>160;x--){
+    for(x=0;x<my_mp->top_cells;x++){
         printf("%d) CELLA = %d  ",j,mov_cell[x]);
-        x--;
+        x++;
         j++;
         printf("%d) CELLA = %d \n",j,mov_cell[x]);
         j++;

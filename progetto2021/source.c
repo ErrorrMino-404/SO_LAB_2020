@@ -1,4 +1,3 @@
-
 #define _GNU_SOURCE
 
 #include "master_lib.h"
@@ -50,8 +49,7 @@ int main (int argc, char *argv[]){
     mexSndSO.type = SOURCE_TO_TAXI;
     mexSndSM.type = SOURCE_TO_MASTER;
 
-    mexSndSM.msgc[0] = atoi(argv[3]);
-    mexSndSO.msgc[0]=my_id;
+
    
     sleep(2);
         /*la source riceve messaggio dal taxi dandogli il suo id e posizione*/
@@ -61,17 +59,33 @@ int main (int argc, char *argv[]){
 
         i = 0;
         while(i < 1){
+            mexSndSM.msgc[0] = source[my_id].origin;
+            mexSndSO.msgc[0]=my_id;
             msgsnd(my_ks->msgq_id_sm, &mexSndSM,sizeof(mexSndSM)-sizeof(long),mexSndSM.type,0);
 
 
             msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0);
-            source[mexRcv.msgc[2]].my_taxi = mexRcv.msgc[0];
-            mexSndSO.msgc[1] = source[mexRcv.msgc[2]].destin;
             if(source[mexRcv.msgc[2]].origin == mexRcv.msgc[1]){
+                printf("prendo il taxi %d \n",mexRcv.msgc[0]);
+                source[mexRcv.msgc[2]].my_taxi = mexRcv.msgc[0];
+                mexSndSO.msgc[1] = source[mexRcv.msgc[2]].destin;
                 /*invio della mia destinazione al taxi*/
                 msgsnd(my_ks->msgq_id_so, &mexSndSO,sizeof(mexSndSO)-sizeof(long),mexSndSO.type,0);
-                i = 1;
+                printf("mando messaggio al taxi %d \n",mexRcv.msgc[0]);
             }
+            msgrcv(my_ks->msgq_id_so, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0);
+            if(my_id==mexRcv.msgc[0]){
+                if(mexRcv.msgc[2]==-1){
+                    printf("non raggiunta destinazione \n");
+                    source[my_id].origin=mexRcv.msgc[1];
+                    source[my_id].my_taxi=0;
+                }else if(mexRcv.msgc[2]==1){
+                    printf("raggiunta la destinazione \n");
+                    i++;
+                    exit(0);
+                }
+            }
+
         }
 
     }

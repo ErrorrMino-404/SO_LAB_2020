@@ -218,17 +218,16 @@ int main(){
     ex_id = -1;
     succ = 0; /*numero di source andate a buonfine*/
     aborti = 0; /*numero di source prese da un taxi, ma che non hanno raggiunto la destinazione*/
-    inve = 0; /*richieste source non ancora raggiunte*/
+    inve = my_mp->source; /*richieste source non ancora raggiunte*/
     x =0;
-
     while(1){
         /*deve aspettare il messaggio dalle source*/
         aspetta = create_new_taxi(my_mp,maps,taxi_pid,taxi_list,key_id_shm,taxi_list_pos,position_taxi,array_id_taxi,sem_sync_round);
         top_taxi = calculate_top_taxi(taxi_list, my_mp->num_taxi+1);
         taxi_succes = calculate_taxi_succes(taxi_list, my_mp->num_taxi+1);
         printf("sono dentro 1\n");
-        x = num_so;
-        while(x < 2 ){
+        while(x < 2 && inve > 0 ){
+            /*NOTA devo implementare un controllo che non ci siano posizioni uguali*/
             if((msgrcv(my_ks->msgq_id_sm, &mexRcvSM, sizeof(mexRcvSM)-sizeof(long),mexRcvSM.type,0))==-1){
                 TEST_ERROR;
             }
@@ -237,31 +236,31 @@ int main(){
             x++;
             
         }
-        inve = x;
         i = x;
         pos_source[2]=-1;
         j=0;
         compute_targets(taxi_list,  my_mp->num_taxi,maps,pos_source);
         print_maps(maps,my_mp,pos_source, top_taxi,taxi_succes,succ,aborti,inve);
-        for(num_so=0;num_so<x;num_so++){
-            pos_source[num_so]= -1;
-        }
-        num_so = 0;
         increase_resource(sem_sync_round,START,my_mp->num_taxi);
         sem_reserve(sem_sync_round, WAIT);
         check_zero(sem_sync_round, START);
         sem_relase(sem_sync_round, WAIT);
+
+        for(num_so=0;num_so<x;num_so++){
+            pos_source[num_so]= -1;
+        }
+        num_so = 0;
         /*aspettare messaggio di aver preso la source*/
         while(i>0){
             if((msgrcv(my_ks->msgq_id, &mexRcv, sizeof(mexRcv)-sizeof(long), mexRcv.type,0))==-1){
                 TEST_ERROR;
             }
-            position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
             if(mexRcv.msgc[2] == -1){
                 /*devo eliminare il blocco che rimane fermo per troppo*/
-                pos_source[num_so] = taxi_list[mexRcv.msgc[0]].target;
                 ex_id = mexRcv.msgc[0];
                 ex_pos = mexRcv.msgc[1];
+                printf("ex_id=%d ex_pos=%d \n",ex_id,ex_pos);
+                maps[ex_pos].num_taxi = 0;
                     if(ex_id != -1){
                         printf("non sono arrivato all source \n");
                         kill(taxi_list[ex_id].my_pid, SIGTERM);                                    
@@ -294,6 +293,7 @@ int main(){
                                         default:
                                         break;
                                         }
+                                taxi_list[ex_id].target=-1;
                                 ex_pos = -1;
                                 ex_id = -1;    
                                 increase_resource(sem_sync_round,START,1);
@@ -302,10 +302,13 @@ int main(){
                                 sem_relase(sem_sync_round, WAIT);   
                     }
                     num_so++;
+                    
                 x--;
-            }else{
+            }else if(mexRcv.msgc[2] == 1){
+                printf("trovato la source\n");
                 inve--;
                 x--;
+                position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
                 taxi_list[mexRcv.msgc[0]].exp_so +=1;
                 maps[mexRcv.msgc[1]].num_taxi = mexRcv.msgc[0];
                 maps[mexRcv.msgc[1]].val_source = -1;
@@ -324,7 +327,6 @@ int main(){
                 maps[mexRcv.msgc[1]].num_taxi = 0;
                 maps[mexRcv.msgc[1]].val_source = taxi_list[mexRcv.msgc[0]].car_so;
                 source_list[taxi_list[mexRcv.msgc[0]].car_so].origin = mexRcv.msgc[1];
-                pos_source[num_so] = mexRcv.msgc[1];
                 ex_id = mexRcv.msgc[0];
                 ex_pos = mexRcv.msgc[1];
                 position_taxi[ex_id] = -1;
@@ -359,6 +361,7 @@ int main(){
                                         default:
                                         break;
                                         }
+                                    
                                 ex_pos = -1;
                                 ex_id = -1;
                                 increase_resource(sem_sync_round,START,1);
@@ -368,11 +371,12 @@ int main(){
                     }
                 num_so++;
                 aborti++;
+                inve++;
             }else if(mexRcv.msgc[2] == 1){
                 succ++;
                 position_taxi[mexRcv.msgc[0]] = mexRcv.msgc[1];
                 maps[mexRcv.msgc[1]].num_taxi = mexRcv.msgc[0];
-                kill(source_list[taxi_list[mexRcv.msgc[0]].car_so].my_pid,SIGKILL);
+                kill(source_list[taxi_list[mexRcv.msgc[0]].car_so].my_pid,SIGTERM);
             }
             j --;
         }

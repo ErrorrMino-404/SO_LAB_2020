@@ -145,7 +145,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
     int i,j,x,y,k,h,best,dist,num_act;
 
     num_act=(int)log(num_taxi);
-    
+    printf("target calcolati \n");
     for(i=1; i<num_taxi+1;i++){
         taxi[i].target = -1;
     }
@@ -165,6 +165,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                 }
                 if(j!=__INT_MAX__){
                     taxi[j].target=position_so[i];
+                    printf("TAXI=%d SOURCE=%d \n",j,position_so[i]);
                 }
         }
         for(i=0;position_so[i]!=-1 ;i++){
@@ -189,6 +190,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         }
                 }
         }
+        printf("termino il target \n");
 }
 int calculate_top_taxi(taxi_data *taxi,int max){
     int top_taxi=0;
@@ -237,9 +239,9 @@ int create_new_taxi(maps_config*my_mp,slot*maps,pid_t*taxi_pid,taxi_data*taxi_li
         char* args_tx[6] ={TAXI};
         for(new=1;new<my_mp->num_taxi+1;new++){
             if(-1<taxi_list[new].my_pid && taxi_list[new].my_pid<my_mp->num_taxi+1){
-                printf("killo taxi= %d\n",taxi_pid[new]);
                 taxi_list[new].my_pid = -1;
                 ex_pos = taxi_list[new].pos;
+                maps[ex_pos].num_taxi = 0;
                 kill(taxi_pid[new],SIGTERM);
                         sem = 0;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
@@ -272,7 +274,6 @@ int create_new_taxi(maps_config*my_mp,slot*maps,pid_t*taxi_pid,taxi_data*taxi_li
                                     default:
                                     break;
                                 }  
- 
             }
 
 
