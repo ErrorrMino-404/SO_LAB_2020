@@ -2,8 +2,11 @@
 #include "config.h"
 #include <stdio.h>
 
-
-slot* create_maps(int height, int width,int maps_id){
+int random_timer(int min,int max){
+    srand(time(NULL));
+    return min==max? min : (rand() % (max - min)) + min;
+}
+slot* create_maps(int height, int width,int maps_id,int tmp_min,int tmp_max){
     printf("Creo la Mappa TAXI e RICHIESTE\n");
     int i, j, sem_id;
     slot* maps;
@@ -26,8 +29,10 @@ slot* create_maps(int height, int width,int maps_id){
                         maps[i*width+j].y=j;
                         maps[i*width+j].val_source = -1;
                         maps[i*width+j].top_cells = 0;
+                        maps[i*width+j].tmp_attr = random_timer(tmp_min,tmp_max);
         }
     }
+
     return maps;
 }
 void clean_sem_maps(int height, int width, slot* maps){
@@ -38,48 +43,12 @@ void clean_sem_maps(int height, int width, slot* maps){
         }
     }
 }
-void merge (int* a, int left, int center, int right){
-    int i,j,k;
-    i = left;
-    j = center+1;
-    k = 0;
-    int b[right-left+1];
-    while(i<=center&&j<=right){
-        if(a[i]<=a[j]){
-            b[k]=a[i];
-            i ++;
-        }else {
-            b[k]=a[j];
-            j ++;
-        }
-        k++;
-    }
-    while(i<=center){
-        b[k] = a[i];
-        i++;
-        k++;
-    }
-    while(j<=right){
-        b[k] = a[j];
-        j++;
-        k++;
-    }
-    for(k=left;k<=right;k++){
-        a[k] = b[k-left];
-    }
-}
-void mergesort(int* top_cells, int left,  int right){
-    if(left < right){
-        int center = (left+right)/2;
-        mergesort(top_cells, left,center);
-        mergesort(top_cells,center+1, right);
-        merge(top_cells,left,center,right);
-    }
-}
+
 void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int taxi_succes,int succ,int aborti,int inve){
     int i, j,u,x,y;
     int sem_m;
     int mov_cell[my_mp->height*my_mp->width];
+    
     /*stampa mappa*/
     printf("MAPPA DI CITTA' \n");
     
@@ -88,8 +57,10 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
     }
     printf("\n|");
     u = 0;
+    
     for(i=0;i<my_mp->height; i++){
                 for(j=0; j<my_mp->width; j++){
+                    u = 0;
                     if((sem_m = semctl(maps[i*my_mp->width+j].c_sem_id,0, GETVAL))==-1){
                         TEST_ERROR;
                     }
@@ -97,16 +68,19 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
                         printf(" ");
                     }else if(sem_m != 0 && maps[i*my_mp->width+j].val_holes!= 0){
                         printf("X");
-                        u += 1;
+                       
                     }/*posizone delle source*/
                     else if(maps[i*my_mp->width+j].val_source!= -1){
-                        for(x=0;x<2; x++){
+                        for(x=0;x<10; x++){
                             if (position_so[x] == i*my_mp->width+j ) {
                                 printf("1");
+                                u = 1;
                             }
-                        }  
-                    }else {
-                        printf(" ");
+                        } 
+                        if(u!=1){
+                            printf(" ");
+                        } 
+                        
                     }
 
                     reset();
@@ -131,11 +105,33 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
     printf("\n");
     printf("\nTOP %d CELLS : \n", my_mp->top_cells);
     /*applico un algoritmo di ordinamento per velocizzare l'ordinamento*/
-    
+    int max;
+    max=0;
+    j=0;
+    int tmp;
+    for(i=0;i<my_mp->height*my_mp->width;i++){
+        mov_cell[i] = i;
+    }
+        for(i=0;i<my_mp->height*my_mp->width-1;i++){
+            max=i;
+            for(j=i+1; j<my_mp->height*my_mp->width;j++){
+                if(maps[mov_cell[j]].top_cells>maps[mov_cell[max]].top_cells){
+                    max=j;
+                }
+            }
+            tmp=mov_cell[i];
+            mov_cell[i]=mov_cell[max];
+            mov_cell[max]=tmp;
+        }
+    for(i=0;i<my_mp->top_cells;i++){
+        printf("%d) CELLS= %d   ", i, mov_cell[i]);
+        i++;
+        printf("%d) CELLS= %d\n", i, mov_cell[i]);
 
+    }
     printf("\nTAXI CON MAGGIORE MOVIMENTI => %d\n",top_taxi);
     printf("\nTAXI CON MAGGIORE SOURCE RACCOLTE => %d\n",taxi_succes);
-
+    
 
     for(j=0; j<=my_mp->width; j++){
                 printf("=");

@@ -69,6 +69,6 @@ int calculate_top_taxi(taxi_data*,int);
 
 int calculate_taxi_succes(taxi_data*,int);
 
-void create_new_taxi(maps_config*,slot*,int,taxi_data*,int,int,int*,int*,int,int,int);
-void check_taxi(maps_config*,slot*,taxi_data*,int,int,int*);
+void create_new_taxi(maps_config*,slot*,int,taxi_data*,int,int,int*,int,int,pid_t*);
+void check_taxi(maps_config*,slot*,taxi_data*,int,int,int*,pid_t*);
 #endif

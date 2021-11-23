@@ -15,12 +15,13 @@ typedef struct _slot{
     int num_taxi;
     int attr; /*quanto è stata attreversata la casella*/
     int top_cells;
+    int tmp_attr;   /*tempo di attraversamento*/
     /*grandezza della scacchiera*/
     int x;
     int y;
 } slot;
 
-slot* create_maps (int, int, int);
+slot* create_maps (int, int, int,int,int);
 
 void print_maps(slot*, maps_config*,int*,int,int,int,int,int);
 

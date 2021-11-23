@@ -30,10 +30,12 @@ typedef struct maps_config{
     /*creazione della mappa con grandezze x e y*/
     int height;
     int width;
-    int num_taxi; /*id del taxi nella cella*/
-    int max_taxi_cell; /*num massimo di taxi nella cella*/
-    int min_taxi_cell; /*num minimo di taxi nella cella*/
-    
+    int num_taxi;       /*id del taxi nella cella*/
+    int max_taxi_cell;  /*num massimo di taxi nella cella*/
+    int min_taxi_cell;  /*num minimo di taxi nella cella*/
+    int timensec_min;   /*tempo minimo di attraversamento di una casella*/
+    int timensec_max;   /*tempo massimo di attraverso di una casella*/
+    int durantion;      /*tempo di dura*/
     int top_cells; /*numero di celle maggiormente attraversate*/
 
 

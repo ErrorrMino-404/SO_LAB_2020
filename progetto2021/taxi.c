@@ -40,7 +40,7 @@ void timeCheck(){
             mexSnd.msgc[2]=-1;
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
             /*segnale da inviare*/
-            sleep(1);
+            
             exit(0);
 
         }else if(taxi_list[my_id].dest!=-1 && taxi_list[my_id].target!=-1){
@@ -55,7 +55,7 @@ void timeCheck(){
             mexSnd.msgc[2]=0;
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
             /*segnale da inviare*/
-            sleep(1);
+            
             exit(0);
 
         }else{
@@ -63,7 +63,7 @@ void timeCheck(){
             sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
             maps[taxi_list[my_id].pos].num_taxi=0;
             wait_zero(my_ks->sem_sync_round, END); 
-            sleep(1);
+            
             exit(0);
     }
     }else {
@@ -144,6 +144,8 @@ int main(int argc,char *argv[]){
                             maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
                             my_x +=1;
                             taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                            tim.tv_nsec=0;
+                            tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
                             gettimeofday(&timer,NULL);
                         }
@@ -156,6 +158,8 @@ int main(int argc,char *argv[]){
                             maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
                             my_x -=1;
                             taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                            tim.tv_nsec=0;
+                            tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
                             gettimeofday(&timer,NULL);
                             
@@ -169,6 +173,8 @@ int main(int argc,char *argv[]){
                             maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
                             my_y +=1;
                             taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                            tim.tv_nsec=0;
+                            tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
                             gettimeofday(&timer,NULL);
                             
@@ -182,6 +188,8 @@ int main(int argc,char *argv[]){
                             maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
                             my_y -=1;
                             taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                            tim.tv_nsec=0;
+                            tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
                             gettimeofday(&timer,NULL);
                         }
@@ -228,6 +236,8 @@ int main(int argc,char *argv[]){
                                 maps[(my_x-1)*my_mp->width+my_y].num_taxi=my_id;
                                 my_x -=1;
                                 taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                                tim.tv_nsec=0;
+                                tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
                                 gettimeofday(&timer,NULL);
                             }
@@ -241,6 +251,8 @@ int main(int argc,char *argv[]){
                                 maps[(my_x+1)*my_mp->width+my_y].num_taxi=my_id;
                                 my_x +=1;
                                 taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                                tim.tv_nsec=0;
+                                tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
                                  gettimeofday(&timer,NULL);
                             }
@@ -254,6 +266,8 @@ int main(int argc,char *argv[]){
                                 maps[(my_x)*my_mp->width+my_y-1].num_taxi=my_id;
                                 my_y -=1;
                                 taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                                tim.tv_nsec=0;
+                                tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
                                  gettimeofday(&timer,NULL);
                             }
@@ -267,6 +281,8 @@ int main(int argc,char *argv[]){
                                 maps[(my_x)*my_mp->width+my_y+1].num_taxi=my_id;
                                 my_y +=1;
                                 taxi_list[my_id].pos= my_x*my_mp->width+my_y;
+                                tim.tv_nsec=0;
+                                tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
                                 gettimeofday(&timer,NULL);
                             }

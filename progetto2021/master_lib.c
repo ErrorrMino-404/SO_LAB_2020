@@ -238,13 +238,13 @@ void print_metrics( maps_config * my_mp, int* array_id_taxi){
         printf("\n");
 }
 
-void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int*array_id_taxi,int sem_sync_round,int ex_pos,int val){
+void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int sem_sync_round,int ex_pos,pid_t*taxi_pid){
         int sem;
         int aspetta = 0;
         int my_y,my_x,ok,pid;
 
         char* args_tx[6] ={TAXI};
-        printf("yee \n");
+       
                         sem = 0;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg(taxi_list_pos);       
@@ -262,7 +262,7 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                             }
                             position_taxi[new_id] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = new_id;
-                                switch (pid=fork()){
+                                switch (taxi_pid[new_id]=fork()){
                                     case -1:
                                         TEST_ERROR
                                     break;
@@ -284,10 +284,10 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
             check_zero(sem_sync_round, START); 
             sem_relase(sem_sync_round, WAIT);
 
-        printf("creato nuovo taxi\n");
+        
 }
 
-void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi){
+void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,pid_t* taxi_pid){
         int sem;
         int aspetta = 0;
         int pid;
@@ -314,7 +314,7 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                             }
                             position_taxi[i] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = i;
-                                switch (pid=fork()) {
+                                switch (taxi_pid[i]=fork()) {
                                     case -1:
                                         TEST_ERROR
                                     break;
