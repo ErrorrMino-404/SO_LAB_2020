@@ -1,5 +1,7 @@
 #include "master_lib.h"
 #include "config.h"
+#include "sem_lib.h"
+#include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <time.h>
@@ -7,7 +9,7 @@
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsemr,int idp){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqns,int idsqend,int state,int idsemr,int rd,int wr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -16,11 +18,15 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->maps_id = ids;
     new_s->msgq_id = idq;
     new_s->ks_shm_id = idm;
-    new_s->msgq_id_so = idqso;
+    new_s->msgq_id_ts = idqso;
     new_s->msgq_id_sm = idsqsm;
-    new_s->msgq_id_ds = idsqds;
+    new_s->msgq_id_st = idsqds;
+    new_s->msgq_id_ns = idsqns;
+    new_s->msgq_id_end = idsqend;
     new_s->sem_sync_round = idsemr;
-    new_s->sem_set_tx = idp;
+    new_s->state = state;
+    new_s->rd = rd;
+    new_s->wr = wr;
     return new_s;
 }
 
@@ -121,7 +127,7 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(maps[sem].val_holes == 0 && maps[sem].num_taxi == 0){
+        if(maps[sem].val_holes == 0){
             ok = 1;
             for(j =0; j<i; j++){
                 if(my_arr_so[j]==sem){
@@ -141,19 +147,21 @@ int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_co
     my_arr_so[my_mp->source] = -1; 
     return my_arr_so;
 }
-void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so){
+void compute_targets(taxi_data* taxi, int num_taxi, slot* maps,int* position_so){
     int i,j,x,y,k,h,best,dist,num_act;
 
     num_act=(int)log(num_taxi);
-    printf("target calcolati \n");
+    
     for(i=1; i<num_taxi+1;i++){
         taxi[i].target = -1;
-    }
+        taxi[i].dest = -1;
+    } 
+    printf("target inizio \n");
     for(i=0;position_so[i]!=-1 ;i++){
                 best=__INT_MAX__;
                 j=__INT_MAX__;
                 for(k=1;k<num_taxi+1;k++){
-                    if(taxi[k].target==-1){
+                    if(taxi[k].target==-1&&taxi[k].my_pid!=-1){
                         x=taxi[k].x;
                         y=taxi[k].y;
                         dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
@@ -165,7 +173,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                 }
                 if(j!=__INT_MAX__){
                     taxi[j].target=position_so[i];
-                    printf("TAXI=%d SOURCE=%d \n",j,position_so[i]);
+                    printf("TAXI=%d SOURCE=%d \n",taxi[j].my_pid,position_so[i]);
                 }
         }
         for(i=0;position_so[i]!=-1 ;i++){
@@ -173,7 +181,7 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         best=__INT_MAX__;
                         j=__INT_MAX__;
                         for(k=1;k<num_taxi+1;k++){
-                            if(taxi[i].target!=-1){
+                            if(taxi[i].target!=-1&&taxi[k].my_pid!=-1){
                                 x=taxi[k].x;
                                 y=taxi[k].y;
                                 dist=abs(maps[position_so[i]].x-x)+abs(maps[position_so[i]].y-y);
@@ -185,12 +193,10 @@ void compute_targets(taxi_data* taxi,  int num_taxi, slot* maps,int* position_so
                         } 
                         if(j!=__INT_MAX__){
                             taxi[j].target=position_so[i];
-                            
-                            
                         }
                 }
         }
-        printf("termino il target \n");
+    printf("target fine \n");
 }
 int calculate_top_taxi(taxi_data *taxi,int max){
     int top_taxi=0;
@@ -232,17 +238,13 @@ void print_metrics( maps_config * my_mp, int* array_id_taxi){
         printf("\n");
 }
 
-int create_new_taxi(maps_config*my_mp,slot*maps,pid_t*taxi_pid,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int*array_id_taxi,int sem_sync_round){
+void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int*array_id_taxi,int sem_sync_round,int ex_pos,int val){
         int sem;
         int aspetta = 0;
-        int my_y,my_x,ok,ex_pos,new;
+        int my_y,my_x,ok,pid;
+
         char* args_tx[6] ={TAXI};
-        for(new=1;new<my_mp->num_taxi+1;new++){
-            if(-1<taxi_list[new].my_pid && taxi_list[new].my_pid<my_mp->num_taxi+1){
-                taxi_list[new].my_pid = -1;
-                ex_pos = taxi_list[new].pos;
-                maps[ex_pos].num_taxi = 0;
-                kill(taxi_pid[new],SIGTERM);
+        printf("yee \n");
                         sem = 0;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg(taxi_list_pos);       
@@ -253,30 +255,81 @@ int create_new_taxi(maps_config*my_mp,slot*maps,pid_t*taxi_pid,taxi_data*taxi_li
                                 sem=1;
                                     for(ok = 1; ok <my_mp->num_taxi+1;ok++){
                                         if(position_taxi[ok]==my_x*my_mp->width+my_y || maps[my_x*my_mp->width+my_y].val_holes!=0
-                                            || my_x*my_mp->width+my_y==ex_pos){
+                                            || my_x*my_mp->width+my_y==ex_pos || maps[my_x*my_mp->width+my_y].num_taxi!=0){
                                                     sem = 0;
                                         }
                                     }
                             }
-                            position_taxi[new] = my_x*my_mp->width+my_y;
-                            maps[my_x*my_mp->width+my_y].num_taxi = new;
-                            array_id_taxi[new]= new;
-                                switch (taxi_pid[new]=fork()) {
+                            position_taxi[new_id] = my_x*my_mp->width+my_y;
+                            maps[my_x*my_mp->width+my_y].num_taxi = new_id;
+                                switch (pid=fork()){
                                     case -1:
                                         TEST_ERROR
                                     break;
                                     case 0:
-                                        args_tx[2]= integer_to_string_arg(new); /*id del taxi*/
-                                        args_tx[4]=integer_to_string_arg(position_taxi[new]); /*posizione del taxi*/
+                                        args_tx[2]= integer_to_string_arg(new_id); /*id del taxi*/
+                                        args_tx[4]=integer_to_string_arg(my_x*my_mp->width+my_y); /*posizione del taxi*/
                                         execve(TAXI,args_tx,NULL);
                                         TEST_ERROR;
                                     break;
                                     default:
                                     break;
                                 }  
+                        taxi_list[new_id].target=-1;
+                        taxi_list[new_id].x = my_x;
+                        taxi_list[new_id].y = my_y;
+
+            increase_resource(sem_sync_round,START,1);
+            sem_reserve(sem_sync_round, WAIT);
+            check_zero(sem_sync_round, START); 
+            sem_relase(sem_sync_round, WAIT);
+
+        printf("creato nuovo taxi\n");
+}
+
+void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi){
+        int sem;
+        int aspetta = 0;
+        int pid;
+        int my_y,my_x,ok,i,start;
+        char* args_tx[6] ={TAXI};
+        start=0;
+        for(i=1;i<my_mp->num_taxi+1;i++){
+            if(taxi_list[i].my_pid==-1){
+                start++;
+                sem = 0;
+                        args_tx[1] = integer_to_string_arg(key_id_shm);
+                        args_tx[3] = integer_to_string_arg(taxi_list_pos);       
+                        srand(time(NULL));
+                            while(sem<1){
+                                my_x = rand()%my_mp->height;
+                                my_y = rand()%my_mp->width;
+                                sem=1;
+                                    for(ok = 1; ok <my_mp->num_taxi+1;ok++){
+                                        if(position_taxi[ok]==my_x*my_mp->width+my_y || maps[my_x*my_mp->width+my_y].val_holes!=0
+                                            || my_x*my_mp->width+my_y==taxi_list[i].pos || maps[my_x*my_mp->width+my_y].num_taxi!=0){
+                                                    sem = 0;
+                                        }
+                                    }
+                            }
+                            position_taxi[i] = my_x*my_mp->width+my_y;
+                            maps[my_x*my_mp->width+my_y].num_taxi = i;
+                                switch (pid=fork()) {
+                                    case -1:
+                                        TEST_ERROR
+                                    break;
+                                    case 0:
+                                        args_tx[2]= integer_to_string_arg(i); /*id del taxi*/
+                                        args_tx[4]=integer_to_string_arg(my_x*my_mp->width+my_y); /*posizione del taxi*/
+                                        execve(TAXI,args_tx,NULL);
+                                        TEST_ERROR;
+                                    break;
+                                    default:
+                                    break;
+                                }  
+                        taxi_list[i].x = my_x;
+                        taxi_list[i].y = my_y;
             }
+        }
 
-
-        }  
-    return aspetta;
 }

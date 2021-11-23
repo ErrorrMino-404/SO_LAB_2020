@@ -7,11 +7,9 @@ slot* create_maps(int height, int width,int maps_id){
     printf("Creo la Mappa TAXI e RICHIESTE\n");
     int i, j, sem_id;
     slot* maps;
-    
     if((maps=(slot*)shmat(maps_id, NULL, 0))== (void*) -1){
         TEST_ERROR;
     }
-    
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
             if((sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT|0666)) == -1){
@@ -30,7 +28,6 @@ slot* create_maps(int height, int width,int maps_id){
                         maps[i*width+j].top_cells = 0;
         }
     }
-
     return maps;
 }
 void clean_sem_maps(int height, int width, slot* maps){
@@ -47,9 +44,8 @@ void merge (int* a, int left, int center, int right){
     j = center+1;
     k = 0;
     int b[right-left+1];
-
     while(i<=center&&j<=right){
-        if(a[i]>=a[j]){
+        if(a[i]<=a[j]){
             b[k]=a[i];
             i ++;
         }else {
@@ -68,11 +64,9 @@ void merge (int* a, int left, int center, int right){
         j++;
         k++;
     }
-
     for(k=left;k<=right;k++){
         a[k] = b[k-left];
     }
-
 }
 void mergesort(int* top_cells, int left,  int right){
     if(left < right){
@@ -111,6 +105,8 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
                                 printf("1");
                             }
                         }  
+                    }else {
+                        printf(" ");
                     }
 
                     reset();
@@ -136,20 +132,7 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
     printf("\nTOP %d CELLS : \n", my_mp->top_cells);
     /*applico un algoritmo di ordinamento per velocizzare l'ordinamento*/
     
-    for(x=0;x<=my_mp->width*my_mp->height;x++){
-        mov_cell[x] = maps[x].top_cells;
-    }
-    mergesort(mov_cell,0,my_mp->width*my_mp->height);
 
-    j=0;
-    for(x=0;x<my_mp->top_cells;x++){
-        printf("%d) CELLA = %d  ",j,mov_cell[x]);
-        x++;
-        j++;
-        printf("%d) CELLA = %d \n",j,mov_cell[x]);
-        j++;
-
-    }
     printf("\nTAXI CON MAGGIORE MOVIMENTI => %d\n",top_taxi);
     printf("\nTAXI CON MAGGIORE SOURCE RACCOLTE => %d\n",taxi_succes);
 

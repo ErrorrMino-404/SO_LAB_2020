@@ -7,5 +7,6 @@
 void allocate_taxi (int, int, int ,slot*, int);
 /*quando riceve il signale di alarm invia un messaggio al master facendo
 uccidere il processo taxi*/
+int calculate_target(taxi_data,int*,slot*);
 
 #endif
