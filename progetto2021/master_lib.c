@@ -9,7 +9,7 @@
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqns,int idsqend,int state,int idsemr,int rd,int wr){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqns,int idsqend,int state,int idsemr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -25,8 +25,6 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->msgq_id_end = idsqend;
     new_s->sem_sync_round = idsemr;
     new_s->state = state;
-    new_s->rd = rd;
-    new_s->wr = wr;
     return new_s;
 }
 
@@ -156,7 +154,7 @@ void compute_targets(taxi_data* taxi, int num_taxi, slot* maps,int* position_so)
         taxi[i].target = -1;
         taxi[i].dest = -1;
     } 
-    printf("target inizio \n");
+    
     for(i=0;position_so[i]!=-1 ;i++){
                 best=__INT_MAX__;
                 j=__INT_MAX__;
@@ -173,7 +171,6 @@ void compute_targets(taxi_data* taxi, int num_taxi, slot* maps,int* position_so)
                 }
                 if(j!=__INT_MAX__){
                     taxi[j].target=position_so[i];
-                    printf("TAXI=%d SOURCE=%d \n",taxi[j].my_pid,position_so[i]);
                 }
         }
         for(i=0;position_so[i]!=-1 ;i++){
@@ -196,7 +193,6 @@ void compute_targets(taxi_data* taxi, int num_taxi, slot* maps,int* position_so)
                         }
                 }
         }
-    printf("target fine \n");
 }
 int calculate_top_taxi(taxi_data *taxi,int max){
     int top_taxi=0;
@@ -222,7 +218,18 @@ int calculate_taxi_succes(taxi_data *taxi,int max){
     }
     return out ;
 }
-
+int calculate_taxi_time(taxi_data *taxi,int max){
+    int top_taxi=0;
+    int x,out;
+    out =0;
+    for(x=1; x<max;x++){
+        if(top_taxi<taxi[x].time){
+            top_taxi = taxi[x].time;
+            out = x;
+        }
+    }
+    return out ;
+}
 
 void print_metrics( maps_config * my_mp, int* array_id_taxi){
         int i,j;

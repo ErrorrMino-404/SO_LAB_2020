@@ -43,6 +43,8 @@ maps_config *init_maps_config(int shm_id){
                         my_maps->top_cells = find_value(line);
                 }else if (strstr(line,"SO_DURANTION")!= NULL){
                         my_maps->durantion = find_value(line);
+                }else if (strstr(line,"SO_TIMEOUT")!= NULL){
+                        my_maps->timeout = find_value(line);
                 }else{
                        TEST_ERROR;
                 }

@@ -73,7 +73,6 @@ int main (int argc, char *argv[]){
                     msgrcv(my_ks->msgq_id_ns,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
                         source[mexRcv.msgc[0]].my_taxi = 0;
                         if(mexRcv.msgc[2]==-1){ /*nel caso non raggiunga la destinazione*/
-                            printf("posizione nuova sou %d pos %d \n",mexRcv.msgc[0],mexRcv.msgc[1]);
                             source[mexRcv.msgc[0]].origin = mexRcv.msgc[1];
                         }   
                 }

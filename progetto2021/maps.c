@@ -44,7 +44,7 @@ void clean_sem_maps(int height, int width, slot* maps){
     }
 }
 
-void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int taxi_succes,int succ,int aborti,int inve){
+void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int taxi_succes,int succ,int aborti,int inve,int val_move,int val_succ,int taxi_time,int val_time){
     int i, j,u,x,y;
     int sem_m;
     int mov_cell[my_mp->height*my_mp->width];
@@ -57,7 +57,6 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
     }
     printf("\n|");
     u = 0;
-    
     for(i=0;i<my_mp->height; i++){
                 for(j=0; j<my_mp->width; j++){
                     u = 0;
@@ -71,7 +70,7 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
                        
                     }/*posizone delle source*/
                     else if(maps[i*my_mp->width+j].val_source!= -1){
-                        for(x=0;x<10; x++){
+                        for(x=0;x<5; x++){
                             if (position_so[x] == i*my_mp->width+j ) {
                                 printf("1");
                                 u = 1;
@@ -129,8 +128,9 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
         printf("%d) CELLS= %d\n", i, mov_cell[i]);
 
     }
-    printf("\nTAXI CON MAGGIORE MOVIMENTI => %d\n",top_taxi);
-    printf("\nTAXI CON MAGGIORE SOURCE RACCOLTE => %d\n",taxi_succes);
+    printf("\nTAXI CON MAGGIORE MOVIMENTI => %d         MOVIMENTI=>%d \n",top_taxi,val_move);
+    printf("\nTAXI CON MAGGIORE SOURCE RACCOLTE => %d   RISORSE=>%d \n",taxi_succes,val_succ);
+    printf("\nTAXI CON IL VIAGGIO LUNGO=> %d            SECONDI=>%f \n",taxi_time,(float)val_time/1000000000);
     
 
     for(j=0; j<=my_mp->width; j++){

@@ -36,7 +36,8 @@ typedef struct maps_config{
     int timensec_min;   /*tempo minimo di attraversamento di una casella*/
     int timensec_max;   /*tempo massimo di attraverso di una casella*/
     int durantion;      /*tempo di dura*/
-    int top_cells; /*numero di celle maggiormente attraversate*/
+    int top_cells;      /*numero di celle maggiormente attraversate*/
+    int timeout;        /*tempo di sosta dei taxi*/
 
 
 }maps_config;
