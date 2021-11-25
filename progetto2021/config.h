@@ -18,9 +18,8 @@
 #include <ctype.h>
 #include <signal.h>
 
-#define TEST_ERROR      printf("%s:%d: PID=%5d: Error %d (%s)\n",__FILE__,__LINE__,getpid(),errno,strerror(errno));\
-                        printf("exit:EXIT_FAILURE\n");\
-                        raise(SIGINT);
+#define TEST_ERROR    printf("exit:EXIT_FAILURE\n");
+                        
 
 typedef struct maps_config{
     /*creazione dei processi SO_SOURCES*/
