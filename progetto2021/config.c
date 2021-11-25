@@ -21,9 +21,9 @@ maps_config *init_maps_config(int shm_id){
     
 
     while(getline(&line, &length, my_file)!=EOF){ 
-                if(strstr(line, "SO_BASE")!=NULL){
+                if(strstr(line, "SO_WIDTH")!=NULL){
                         my_maps->width=find_value(line);
-                }else if(strstr(line, "SO_ALTEZZA")!=NULL){
+                }else if(strstr(line, "SO_HEIGHT")!=NULL){
                         my_maps->height=find_value(line);
                 }else if(strstr(line, "SO_HOLES")!=NULL){
                         my_maps->holes = find_value(line);

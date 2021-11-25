@@ -84,8 +84,6 @@ int main(int argc,char *argv[]){
     if((taxi_list=shmat(atoi(argv[3]),NULL,0))==(void*)-1){
         TEST_ERROR;
     }
-
-    
     /*inizializzo struct del taxi*/
     my_id = atoi(argv[2]);
     /*impostare il tempo di vita*/
@@ -97,24 +95,16 @@ int main(int argc,char *argv[]){
     maps[atoi(argv[4])].num_taxi = my_id;
     taxi_list[my_id].time = 0;
     /*alloco il taxi nella mappa*/
-    allocate_taxi(taxi_list[my_id].x,taxi_list[my_id].y,my_id, maps, my_mp->width );
-   
     /*Comunicazione dei taxi con il master*/
     mexSnd.type = TAXI_TO_MASTER;
     mexSndSO.type = TAXI_TO_SOURCE;
     mexRcv.type = SOURCE_TO_TAXI;
-
     sops.sem_num = 0;
     sops.sem_op = -1;
-    sops.sem_flg = IPC_NOWAIT;
-
-    tim.tv_nsec=0;
-    tim.tv_nsec=(long)1000000;
-   
+    sops.sem_flg = IPC_NOWAIT;  
     gettimeofday(&timer,NULL);
     /*spostamento del taxi nella mappa*/
     while(1){
-
         /*alcuni processi taxi non raggiungono questo punto, i due processi che hanno il target*/
         check_zero(my_ks->sem_sync_round, WAIT);
         wait_zero(my_ks->sem_sync_round, START);
@@ -169,7 +159,6 @@ int main(int argc,char *argv[]){
                             tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
                             gettimeofday(&timer,NULL);
-                            
                         }
                     }if(my_y>targ_y ){
                         if(semop(maps[(my_x)*my_mp->width+my_y-1].c_sem_id,&sops,1)!=-1){

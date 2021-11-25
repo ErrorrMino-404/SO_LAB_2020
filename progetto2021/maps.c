@@ -2,23 +2,28 @@
 #include "config.h"
 #include <stdio.h>
 
-int random_timer(int min,int max){
+int random_val(int min,int max){
+    int val;
     srand(time(NULL));
-    return min==max? min : (rand() % (max - min)) + min;
+    val = min==max? min : (rand() % (max - min)) + min;
+    return val;
 }
-slot* create_maps(int height, int width,int maps_id,int tmp_min,int tmp_max){
+
+slot* create_maps(int height, int width,int maps_id,int tmp_min,int tmp_max,int min_cell,int max_cell){
     printf("Creo la Mappa TAXI e RICHIESTE\n");
     int i, j, sem_id;
+    int val;
     slot* maps;
     if((maps=(slot*)shmat(maps_id, NULL, 0))== (void*) -1){
         TEST_ERROR;
     }
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
-            if((sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT|0666)) == -1){
+            val=random_val(min_cell,max_cell);
+            if((sem_id = semget(IPC_PRIVATE,val,IPC_CREAT|0666)) == -1){
                 TEST_ERROR
             }
-            if((init_sem_to_val(sem_id, 0, 1))==-1){
+            if((init_sem_to_val(sem_id, 0,val))==-1){
                                 TEST_ERROR
             }
                         maps[i*width+j].c_sem_id=sem_id;
@@ -29,7 +34,7 @@ slot* create_maps(int height, int width,int maps_id,int tmp_min,int tmp_max){
                         maps[i*width+j].y=j;
                         maps[i*width+j].val_source = -1;
                         maps[i*width+j].top_cells = 0;
-                        maps[i*width+j].tmp_attr = random_timer(tmp_min,tmp_max);
+                        maps[i*width+j].tmp_attr = random_val(tmp_min,tmp_max);
         }
     }
 
@@ -65,12 +70,12 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int 
                     }
                     if( maps[i*my_mp->width+j].val_holes == 0 && maps[i*my_mp->width+j].val_source == -1){
                         printf(" ");
-                    }else if(sem_m != 0 && maps[i*my_mp->width+j].val_holes!= 0){
+                    }else if(maps[i*my_mp->width+j].val_holes!= 0){
                         printf("X");
                        
                     }/*posizone delle source*/
                     else if(maps[i*my_mp->width+j].val_source!= -1){
-                        for(x=0;x<5; x++){
+                        for(x=0;x<2; x++){
                             if (position_so[x] == i*my_mp->width+j ) {
                                 printf("1");
                                 u = 1;

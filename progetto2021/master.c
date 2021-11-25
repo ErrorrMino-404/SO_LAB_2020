@@ -21,7 +21,8 @@ struct timeval timer;
 
 void handle_signal(int signum){
         int i, j;
-        sleep(1);
+        sleep(1);    
+
             printf("GAME ENDED\nPrinting chessboard and statistics.\n\n");
             for(i=1; i<my_mp->num_taxi+1; i++){
                     kill(taxi_pid[i], SIGTERM);  
@@ -29,6 +30,7 @@ void handle_signal(int signum){
             for(i=0; i<my_mp->source; i++){
                 kill(source_list[i].my_pid, SIGTERM);
             }
+
             print_maps(maps,my_mp,pos_source, top_taxi,taxi_succes,succ,aborti,inve,val_top_taxi,val_taxi_succes,top_time,val_time);
             /*rimozione semafori e code*/
             semctl(sem_sync_round, 0, IPC_RMID);
@@ -146,7 +148,7 @@ int main(){
                 TEST_ERROR;
     }
     /*creazione mappa*/
-    maps = create_maps(my_mp->height, my_mp->width,mp_id_shm,my_mp->timensec_min,my_mp->timensec_max);
+    maps = create_maps(my_mp->height, my_mp->width,mp_id_shm,my_mp->timensec_min,my_mp->timensec_max,my_mp->min_taxi_cell,my_mp->max_taxi_cell);
     num_ho = my_mp->holes;
     /*set dei round*/
     for(i=0; i<4; i++){
@@ -285,18 +287,21 @@ int main(){
         check_taxi(my_mp,maps,taxi_list,key_id_shm,taxi_list_pos,position_taxi,taxi_pid);
         j=0;
             x = 0;
-            while(x<5){
+            if(inve==0){
+                printf("ho terminato \n");
+            }
+            while(x<2 && inve > 0){
                 if((msgrcv(my_ks->msgq_id_sm,&mexRcvSM,sizeof(mexRcvSM)-sizeof(long),mexRcvSM.type,0)==-1)){
                     TEST_ERROR
                 }
                 pos_source[x]=mexRcvSM.msgc[0];
                 x++;
             }
+
             pos_source[x]=-1;
             if(time_stamp()==1){
                 gettimeofday(&timer,NULL);
             }
-            
             compute_targets(taxi_list,my_mp->num_taxi,maps,pos_source);
             increase_resource(sem_sync_round,START,my_mp->num_taxi);
             sem_reserve(sem_sync_round, WAIT);
@@ -328,7 +333,6 @@ int main(){
                                 position_so[taxi_list[new_id].car_so] = ex_pos;
                                 maps[ex_pos].val_source = taxi_list[new_id].car_so;
                                 create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync_round,ex_pos,taxi_pid);
-                            
                         }
                         x--;
                     }

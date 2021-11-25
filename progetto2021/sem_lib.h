@@ -18,7 +18,7 @@ int sem_set_val(int, int, int);
 int sem_reserve(int, int);
 
 /*release del semaforo*/
-int sem_release(int, int);
+int sem_relase(int, int);
 
 /*inizializzazione valore semaforo*/
 int init_sem_to_val(int, int, int);

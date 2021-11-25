@@ -61,10 +61,10 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
                 }
             }
             if(ok==1){
+                init_sem_to_val(maps[tmp_index].c_sem_id,0 , 0);
                 my_arr[i]=tmp_index;
                 maps[tmp_index].val_holes = 1; /*la holes è attiva  */  
                 i++;
-                semop(maps[tmp_index].c_sem_id,0,1);
             }
         }
     }
@@ -100,7 +100,9 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 }
             }
             if(ok==1){
+                sem_reserve(maps[x*my_mp->width+y].c_sem_id,0);
                 my_arr[i]=sem;
+                maps[x*my_mp->width+y].num_taxi = i;
                 /*do la posizione sulla mappa*/
                 taxi_list[i].x = x;
                 taxi_list[i].y = y;
@@ -256,19 +258,22 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg(taxi_list_pos);       
                         srand(time(NULL));
-                            while(sem<1){
+                            while(!sem){
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
-                                sem=1;
-                                    for(ok = 1; ok <my_mp->num_taxi+1;ok++){
-                                        if(position_taxi[ok]==my_x*my_mp->width+my_y || maps[my_x*my_mp->width+my_y].val_holes!=0
-                                            || my_x*my_mp->width+my_y==ex_pos || maps[my_x*my_mp->width+my_y].num_taxi!=0){
-                                                    sem = 0;
-                                        }
-                                    }
+                                sem=0;        
+                                if(semctl(maps[my_x*my_mp->width+my_y].c_sem_id,0,GETVAL) && maps[my_x*my_mp->width+my_y].val_holes==0){
+                                    sem=1;
+                                }
+                                   
                             }
+                            taxi_list[new_id].pos=my_x*my_mp->width+my_y;
+                            taxi_list[new_id].x = my_x;
+                            taxi_list[new_id].y = my_y;
                             position_taxi[new_id] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = new_id;
+                            sem_reserve(maps[my_x*my_mp->width+my_y].c_sem_id,0);
+
                                 switch (taxi_pid[new_id]=fork()){
                                     case -1:
                                         TEST_ERROR
@@ -283,8 +288,7 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                     break;
                                 }  
                         taxi_list[new_id].target=-1;
-                        taxi_list[new_id].x = my_x;
-                        taxi_list[new_id].y = my_y;
+                        
 
             increase_resource(sem_sync_round,START,1);
             sem_reserve(sem_sync_round, WAIT);
@@ -303,24 +307,30 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
         start=0;
         for(i=1;i<my_mp->num_taxi+1;i++){
             if(taxi_list[i].my_pid==-1){
+              
                 start++;
                 sem = 0;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg(taxi_list_pos);       
                         srand(time(NULL));
-                            while(sem<1){
+                            while(!sem){
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
-                                sem=1;
-                                    for(ok = 1; ok <my_mp->num_taxi+1;ok++){
-                                        if(position_taxi[ok]==my_x*my_mp->width+my_y || maps[my_x*my_mp->width+my_y].val_holes!=0
-                                            || my_x*my_mp->width+my_y==taxi_list[i].pos || maps[my_x*my_mp->width+my_y].num_taxi!=0){
-                                                    sem = 0;
-                                        }
-                                    }
+                                if(semctl(maps[my_x*my_mp->width+my_y].c_sem_id,0,GETVAL) && maps[my_x*my_mp->width+my_y].val_holes==0){
+                                   
+                                    sem=1;
+                                }
                             }
+                            
+                            taxi_list[i].x = my_x;
+                            taxi_list[i].y = my_y;
                             position_taxi[i] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = i;
+                            taxi_list[i].pos =my_x*my_mp->width+my_y;
+                            sem_reserve(maps[my_x*my_mp->width+my_y].c_sem_id,0);
+                           
+
+                            
                                 switch (taxi_pid[i]=fork()) {
                                     case -1:
                                         TEST_ERROR
@@ -333,9 +343,7 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                                     break;
                                     default:
                                     break;
-                                }  
-                        taxi_list[i].x = my_x;
-                        taxi_list[i].y = my_y;
+                                }                          
             }
         }
 
