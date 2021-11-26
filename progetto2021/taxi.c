@@ -39,6 +39,10 @@ void timeCheck(){
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
             wait_zero(my_ks->sem_sync_round, END); 
             /*segnale da inviare*/
+            shmdt(taxi_list);
+            shmdt(maps);
+            shmdt(my_mp);
+            shmdt(my_ks);
             exit(0);
         }else if(taxi_list[my_id].dest!=-1 && taxi_list[my_id].target!=-1){
             sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
@@ -51,6 +55,10 @@ void timeCheck(){
             mexSnd.msgc[2]=0;
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
             wait_zero(my_ks->sem_sync_round, END); 
+            shmdt(taxi_list);
+            shmdt(maps);
+            shmdt(my_mp);
+            shmdt(my_ks);
             /*segnale da inviare*/
             exit(0);
         }else{
@@ -58,6 +66,10 @@ void timeCheck(){
             sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
             maps[taxi_list[my_id].pos].num_taxi=0;
             wait_zero(my_ks->sem_sync_round, END); 
+            shmdt(taxi_list);
+            shmdt(maps);
+            shmdt(my_mp);
+            shmdt(my_ks);
             exit(0);
     }
     }else {

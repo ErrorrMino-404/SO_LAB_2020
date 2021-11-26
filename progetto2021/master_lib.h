@@ -51,7 +51,7 @@ keys_storage* fill_storage_shm(int,int,int,int,int,int,int,int,int,int,int);
 
 int get_rand_so(int,int);
 
-int* randomize_holes(int, int, maps_config*, slot*);
+void randomize_holes(int, maps_config*, slot*);
 
 /*restituisce un char* che corrisponde all'int passato come argomento*/
 char* integer_to_string_arg(int);

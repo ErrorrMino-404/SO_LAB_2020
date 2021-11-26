@@ -34,14 +34,11 @@ int get_rand_so(int min, int max){
     return min==max ? min :(rand()% (max-min)) + min;
 }
 
-int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
-    int* my_arr;
+void randomize_holes( int ho_num, maps_config* my_mp,slot* maps){
+    int my_arr[ho_num];
     int i,j,x,y,ok;
     int num_r, num_sem, tmp_index;
     
-    if((my_arr = (int*) shmat(arr_id,NULL,0))==(void*) -1 ){
-        TEST_ERROR
-    }
     srand(time(NULL));
     i = 0;
     while(i<ho_num){
@@ -70,7 +67,7 @@ int* randomize_holes(int arr_id, int ho_num, maps_config* my_mp,slot* maps){
         }
     }
 
-    return my_arr;
+
 }
 
 char* integer_to_string_arg(int x){
@@ -316,6 +313,7 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                                     sem_reserve(maps[my_x*my_mp->width+my_y].c_sem_id,0);
                                         switch (taxi_pid[i]=fork()) {
                                             case -1:
+                                            /*il problema è dato qua, quando vengono create nuovi processi*/
                                                 printf("errore taxi 1 pid=%d\n",taxi_pid[i]);
                                                 exit(EXIT_SUCCESS);
                                             break;

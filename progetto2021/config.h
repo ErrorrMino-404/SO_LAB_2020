@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include <signal.h>
 
-#define TEST_ERROR    printf("exit:EXIT_FAILURE\n");
+#define TEST_ERROR    exit(EXIT_FAILURE);
                         
 
 typedef struct maps_config{
