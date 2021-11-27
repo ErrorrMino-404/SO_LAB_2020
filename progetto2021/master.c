@@ -1,13 +1,12 @@
-#include <time.h>
 #define _GNU_SOURCE
 #include "master_lib.h"
 maps_config *my_mp;
 slot* maps;
-int gc_id_shm, mp_id_shm,so_id_shm,tx_id_shm,key_id_shm,sem_sync_round;
+int gc_id_shm, mp_id_shm,so_id_shm,tx_id_shm,key_id_shm,sem_sync;
 int msgq_id_sm, msgq_id,msgq_id_so,msgq_id_ds,msgq_id_ns,msgq_id_end,state,new_id,ex_pos,start;
-int  succ,aborti,inve,fd[2],num_ho,top_taxi,taxi_succes,ex_top_taxi,ex_taxi_succes;/*variabili da stampare*/
+int  succ,aborti,inve,num_ho,top_taxi,taxi_succes,ex_top_taxi,ex_taxi_succes;/*variabili da stampare*/
 int *position_taxi, *position_so, *array_id_taxi,*holes, i,j,aspetta, pos_source[MAX_SOURCE];
-int taxi_list_pos,source_list_pos, num_so,ex_id,ex_pos,mex_so,my_x,my_y,ok,sem,x,new;
+int taxi_list_pos,source_list_pos, num_so,ex_id,ex_pos,mex_so,my_x,my_y,ok,sem,x,num_source;
 int val_top_taxi, val_taxi_succes,ex_val_tpt,ex_val_tss,top_time,val_time,ex_top_time,ex_val_time;
 struct message mexSnd;
 struct message mexRcv;
@@ -22,7 +21,6 @@ struct timeval timer;
 
 void handle_signal(int signum){
         int i, j;
-        
             printf("GAME ENDED\nPrinting chessboard and statistics.\n\n");
             for(i=1; i<my_mp->num_taxi+1; i++){
                     kill(taxi_pid[i], SIGTERM);  
@@ -32,9 +30,9 @@ void handle_signal(int signum){
                 kill(source_list[i].my_pid, SIGTERM);
             }
             shmctl(source_list_pos,IPC_RMID,NULL);
-            print_maps(maps,my_mp,pos_source, top_taxi,taxi_succes,succ,aborti,inve,val_top_taxi,val_taxi_succes,top_time,val_time);
+            print_metrics(maps,my_mp, position_so,top_taxi,taxi_succes,succ,aborti,inve,val_top_taxi,val_taxi_succes,top_time,val_time,num_source);
             /*rimozione semafori e code*/
-            semctl(sem_sync_round, 0, IPC_RMID);
+            semctl(sem_sync, 0, IPC_RMID);
             msgctl(msgq_id, IPC_RMID, 0); 
             msgctl(msgq_id_so, IPC_RMID, 0);
             msgctl(msgq_id_sm, IPC_RMID, 0);
@@ -64,35 +62,50 @@ void handle_signal(int signum){
                 exit(EXIT_FAILURE);
         }
     }
-
 int time_stamp(){
-        
     struct timeval pass;
-    int s,u,n;
-    int mex_so;
-    int j;
+    float s,u,n;
     gettimeofday(&pass,NULL);
     s=pass.tv_sec - timer.tv_sec;
     u=pass.tv_usec - timer.tv_usec;
-    n = s * 1000000000 + (u * 1000);
-    if(n>=1000000000){
-        print_maps(maps,my_mp,pos_source, top_taxi,taxi_succes,succ,aborti,inve,val_top_taxi,val_taxi_succes,top_time,val_time);
+    n = s + (u * 0.0000001);
+    if(n>=1){
+        ex_taxi_succes=taxi_succes;
+        ex_top_taxi=top_taxi;
+        ex_top_time=top_time;
+        ex_val_tpt=val_top_taxi;
+        ex_val_tss=val_taxi_succes;
+        ex_val_time=val_time;
+        top_taxi=calculate_top_taxi(taxi_list, my_mp->num_taxi+1);
+        val_top_taxi=taxi_list[top_taxi].move;
+        taxi_succes=calculate_taxi_succes(taxi_list, my_mp->num_taxi+1);
+        val_taxi_succes=taxi_list[taxi_succes].exp_so;
+        top_time=calculate_taxi_time(taxi_list, my_mp->num_taxi+1);
+        val_time=taxi_list[top_time].time;
+        if(val_top_taxi<ex_val_tpt){
+            top_taxi=ex_top_taxi;
+            val_top_taxi = ex_val_tpt;
+        }
+        if(val_taxi_succes<ex_val_tss){
+            taxi_succes = ex_taxi_succes;
+            val_taxi_succes = ex_val_tss;
+        }
+        if(val_time<ex_val_time){
+            top_time = ex_top_time;
+            val_time = ex_val_time;
+        }
+        print_maps(maps,my_mp,pos_source,num_source);
+       
     }
     return 1;
 }
 int main(){
-
-    struct sigaction sa;
-    struct sigaction action;
+    struct sigaction sa; 
     sigset_t my_mask;
-
     bzero(&sa, sizeof(sa));  
     sa.sa_handler = handle_signal; 
     sigaction(SIGINT, &sa, NULL);
     signal(SIGALRM,handle_signal);
-    
-
-
     /*allocazione e inizializzazione della memoria condivisa */
     if((gc_id_shm=shmget(IPC_PRIVATE, sizeof(maps_config), IPC_CREAT|0666))==-1){
                 TEST_ERROR;
@@ -103,7 +116,7 @@ int main(){
     so_pid = calloc (my_mp->source, sizeof(pid_t));
     /*alloco e inizializzo la mappa*/
     if((mp_id_shm=shmget(IPC_PRIVATE, my_mp->height*my_mp->width*my_mp->height*sizeof(slot*), IPC_CREAT|0666))==-1){
-                TEST_ERROR;
+        TEST_ERROR;
     }
     /*coda di messaggio tra taxi e master se ha raggiunto la source*/
     if((msgq_id = msgget(IPC_PRIVATE,IPC_CREAT|0666))==-1){
@@ -133,21 +146,21 @@ int main(){
         TEST_ERROR;
     }
     /*sincronizzazione tra i taxi*/
-    if((sem_sync_round=semget(IPC_PRIVATE, 4, IPC_CREAT|0666))==-1){
-                TEST_ERROR
+    if((sem_sync=semget(IPC_PRIVATE, 4, IPC_CREAT|0666))==-1){
+        TEST_ERROR
     }
-      /*allocazione array lista taxi*/
+    /*allocazione array lista taxi*/
     if((taxi_list_pos=shmget(IPC_PRIVATE,sizeof(taxi_data)*my_mp->num_taxi, IPC_CREAT|0666))== -1){
-                TEST_ERROR;
+        TEST_ERROR;
     }
     if((taxi_list=shmat(taxi_list_pos, NULL, 0))== (void *) -1){
-                TEST_ERROR;
+        TEST_ERROR;
     }
     if((source_list_pos=shmget(IPC_PRIVATE,sizeof(source_data)*my_mp->source, IPC_CREAT|0666))== -1){
-                TEST_ERROR;
+        TEST_ERROR;
     }
     if((source_list=shmat(source_list_pos, NULL, 0))== (void *) -1){
-                TEST_ERROR;
+        TEST_ERROR;
     }
     /*creazione mappa*/
     maps = create_maps(my_mp->height, my_mp->width,mp_id_shm,my_mp->timensec_min,my_mp->timensec_max,my_mp->min_taxi_cell,my_mp->max_taxi_cell);
@@ -156,25 +169,25 @@ int main(){
     for(i=0; i<4; i++){
                 switch(i){
                         case 0:
-                        if((init_sem_to_val(sem_sync_round, i, my_mp->num_taxi+1))==-1){
+                        if((init_sem_to_val(sem_sync, i, my_mp->num_taxi+1))==-1){
                                 TEST_ERROR 
                         }
                         break;
 
                         case WAIT: 
-                        if((init_sem_to_val(sem_sync_round, i, 1))==-1){
+                        if((init_sem_to_val(sem_sync, i, 1))==-1){
                                 TEST_ERROR 
                         }
                         break;
 
                         case START:
-                        if((init_sem_to_val(sem_sync_round, i, 0))==-1){
+                        if((init_sem_to_val(sem_sync,i, 0))==-1){
                                 TEST_ERROR 
                         }
                         break;
 
                         case END: 
-                        if((init_sem_to_val(sem_sync_round, i, 0))==-1){
+                        if((init_sem_to_val(sem_sync, i, 0))==-1){
                                 TEST_ERROR 
                         }
                 }
@@ -192,7 +205,7 @@ int main(){
         TEST_ERROR;
     }
 
-    my_ks=fill_storage_shm(key_id_shm, gc_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,msgq_id_ns,msgq_id_end,state,sem_sync_round);
+    my_ks=fill_storage_shm(key_id_shm, gc_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,msgq_id_ns,msgq_id_end,state,sem_sync);
     args_tx[1] = integer_to_string_arg(key_id_shm); /*id insieme delle chiavi*/
     /*args[2] id del taxi*/
     args_tx[3] = integer_to_string_arg(taxi_list_pos);
@@ -237,9 +250,9 @@ int main(){
     mexRcv.type = TAXI_TO_MASTER;
     mexRcvSM.type = SOURCE_TO_MASTER;
     mexRcvDS.type = TAXI_TO_MASTER;
-    succ = 0; /*numero di source andate a buonfine*/
-    aborti = 0; /*numero di source prese da un taxi, ma che non hanno raggiunto la destinazione*/
-    inve = my_mp->source; /*richieste source non ancora raggiunte*/
+    succ = 0;                               /*numero di source andate a buonfine*/
+    aborti = 0;                             /*numero di source prese da un taxi, ma che non hanno raggiunto la destinazione*/
+    inve = my_mp->source;                   /*richieste source non ancora raggiunte*/
     i=0;
     top_taxi=0;
     taxi_succes=0;
@@ -247,77 +260,50 @@ int main(){
     val_taxi_succes=0;
     val_top_taxi=0;
     val_time=0;
+    printf("Quante richieste source posso avere ad ogni ciclo =>");
+    scanf("%d",&num_source);
     alarm(my_mp->durantion);
     gettimeofday(&timer,NULL);
     while(1){
-        
-        ex_taxi_succes=taxi_succes;
-        ex_top_taxi=top_taxi;
-        ex_top_time=top_time;
-        ex_val_tpt=val_top_taxi;
-        ex_val_tss=val_taxi_succes;
-        ex_val_time=val_time;
-        top_taxi=calculate_top_taxi(taxi_list, my_mp->num_taxi+1);
-        val_top_taxi=taxi_list[top_taxi].move;
-        taxi_succes=calculate_taxi_succes(taxi_list, my_mp->num_taxi+1);
-        val_taxi_succes=taxi_list[taxi_succes].exp_so;
-        top_time=calculate_taxi_time(taxi_list, my_mp->num_taxi+1);
-        val_time=taxi_list[top_time].time;
-        if(val_top_taxi<ex_val_tpt){
-            top_taxi=ex_top_taxi;
-            val_top_taxi = ex_val_tpt;
-        }
-        if(val_taxi_succes<ex_val_tss){
-            taxi_succes = ex_taxi_succes;
-            val_taxi_succes = ex_val_tss;
-        }
-        if(val_time<ex_val_time){
-            top_time = ex_top_time;
-            val_time = ex_val_time;
-        }
-        
-        j=0;
-            x = 0;
+        x=0;
         if(inve==0){
             exit(EXIT_SUCCESS);
         }
         check_taxi(my_mp,maps,taxi_list,key_id_shm,taxi_list_pos,position_taxi,taxi_pid);
-
-            while(x<2 && inve > 0){
+        if(inve<num_source){
+            num_source=inve;
+        }
+            while(x<num_source && inve > 0){
                 if((msgrcv(my_ks->msgq_id_sm,&mexRcvSM,sizeof(mexRcvSM)-sizeof(long),mexRcvSM.type,0)==-1)){
-                    printf("non ci sono messaggi \n");
+                    TEST_ERROR;
                 }
                 pos_source[x]=mexRcvSM.msgc[0];
-                printf("messaggio arrivato da %d posizione %d \n",mexRcvSM.msgc[1],mexRcvSM.msgc[0]);
                 x++;
             }
-
-            pos_source[x]=-1;
-            if(time_stamp()==1){
+        pos_source[x]=-1;
+        if(time_stamp()==1){
                 gettimeofday(&timer,NULL);
-            }
+        }
             if(x!=0){
                 compute_targets(taxi_list,my_mp->num_taxi,maps,pos_source);
-                increase_resource(sem_sync_round,START,my_mp->num_taxi);
-                sem_reserve(sem_sync_round, WAIT);
-                check_zero(sem_sync_round, START); 
-                sem_relase(sem_sync_round, WAIT);
+                increase_resource(sem_sync,START,my_mp->num_taxi);
+                sem_reserve(sem_sync, WAIT);
+                check_zero(sem_sync, START); 
+                sem_relase(sem_sync, WAIT);
                         while(x>0){
                             msgrcv(my_ks->msgq_id,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
-
                             if(mexRcv.msgc[2]==1){
                                 position_taxi[mexRcv.msgc[0]]=mexRcv.msgc[1];
                                 maps[mexRcv.msgc[1]].num_taxi=mexRcv.msgc[0];
                                 kill(source_list[taxi_list[mexRcv.msgc[0]].car_so].my_pid,SIGTERM);
                                 succ++;
                                 inve--; 
-                            }else if(mexRcv.msgc[2]==-1){ 
+                            }else if(mexRcv.msgc[2]==-1){
                                     new_id=mexRcv.msgc[0];
                                     ex_pos=mexRcv.msgc[1];
                                     maps[ex_pos].num_taxi = 0;
                                     position_taxi[new_id]=0;
-                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync_round,ex_pos,taxi_pid);
-                                    
+                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);       
                             }else if(mexRcv.msgc[2]==0){
                                 aborti++;
                                     new_id=mexRcv.msgc[0];
@@ -327,15 +313,15 @@ int main(){
                                     source_list[taxi_list[new_id].car_so].origin=ex_pos;
                                     position_so[taxi_list[new_id].car_so] = ex_pos;
                                     maps[ex_pos].val_source = taxi_list[new_id].car_so;
-                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync_round,ex_pos,taxi_pid);
+                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);
                             }
                             x--;
+                            if(time_stamp()==1){
+                                gettimeofday(&timer,NULL);
+                            }
                         }
-                    increase_resource(sem_sync_round,END,my_mp->num_taxi);
-                    check_zero(sem_sync_round,END);
+                    increase_resource(sem_sync,END,my_mp->num_taxi);
+                    check_zero(sem_sync,END);
             }
-       
     }
-    
-
 }   

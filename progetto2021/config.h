@@ -18,8 +18,9 @@
 #include <ctype.h>
 #include <signal.h>
 
-#define TEST_ERROR    exit(EXIT_FAILURE);
-                        
+#define TEST_ERROR      printf("%s:%d: PID=%5d: Error %d (%s)\n",__FILE__,__LINE__,getpid(),errno,strerror(errno));\
+                        printf("exit:EXIT_FAILURE\n");\
+                        raise(SIGINT);
 
 typedef struct maps_config{
     /*creazione dei processi SO_SOURCES*/
@@ -36,9 +37,7 @@ typedef struct maps_config{
     int timensec_max;   /*tempo massimo di attraverso di una casella*/
     int durantion;      /*tempo di dura*/
     int top_cells;      /*numero di celle maggiormente attraversate*/
-    int timeout;        /*tempo di sosta dei taxi*/
-
-
+    float timeout;      /*tempo di sosta dei taxi*/
 }maps_config;
 
 maps_config* init_maps_config();

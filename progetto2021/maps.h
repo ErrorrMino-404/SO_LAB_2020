@@ -1,6 +1,8 @@
 #ifndef _MAPS_LIB_
 #define _MAPS_LIB_
-
+#define RED "[0;31m" 
+#define GRN "[0;32m"
+#define YEL "[0;33m"
 
 #include "config.h"
 #include "sem_lib.h"
@@ -23,9 +25,13 @@ typedef struct _slot{
 
 slot* create_maps (int, int, int,int,int,int,int);
 
-void print_maps(slot*, maps_config*,int*,int,int,int,int,int,int,int,int,int);
+void print_maps(slot*, maps_config*,int*,int);
+
+void print_metrics(slot*,maps_config*,int*,int,int,int,int,int,int,int,int,int,int);
 
 void clean_sem_maps(int, int, slot*);
+
+void color(char*);
 
 void reset();
 

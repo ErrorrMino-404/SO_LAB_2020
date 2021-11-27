@@ -25,7 +25,7 @@ int main (int argc, char *argv[]){
     sa.sa_handler = handle_signal; 
     sigaction(SIGINT, &sa, NULL);
 
-
+    /*attach alla memoria condivisa */
     keys_id = atoi(argv[1]);
     if((my_ks = shmat(keys_id,NULL,0))==(void*)-1){
         TEST_ERROR;
@@ -49,8 +49,6 @@ int main (int argc, char *argv[]){
     mexRcv.type = TAXI_TO_SOURCE;
     mexSndSO.type = SOURCE_TO_TAXI;
     mexSndSM.type = SOURCE_TO_MASTER;
-
-
     int to_kill;
     sleep(2);
         /*la source riceve messaggio dal taxi dandogli il suo id e posizione*/
@@ -78,7 +76,5 @@ int main (int argc, char *argv[]){
                 }
         }
     }
-
-    
     /*source che impostano una loro destinazione */
 }

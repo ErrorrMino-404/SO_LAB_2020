@@ -6,8 +6,6 @@ maps_config *init_maps_config(int shm_id){
     maps_config *my_maps;
     char* line = NULL;
     ssize_t length = 0;
-    
-    
     my_file = fopen("init.conf","r");
     if((my_maps = (maps_config*)shmat(shm_id,NULL,0)) == (void *) -1){
         TEST_ERROR;
@@ -18,8 +16,6 @@ maps_config *init_maps_config(int shm_id){
         
         TEST_ERROR;
     }
-    
-
     while(getline(&line, &length, my_file)!=EOF){ 
                 if(strstr(line, "SO_WIDTH")!=NULL){
                         my_maps->width=find_value(line);

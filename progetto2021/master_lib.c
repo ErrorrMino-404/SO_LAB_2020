@@ -24,7 +24,7 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->msgq_id_st = idsqds;
     new_s->msgq_id_ns = idsqns;
     new_s->msgq_id_end = idsqend;
-    new_s->sem_sync_round = idsemr;
+    new_s->sem_sync = idsemr;
     new_s->state = state;
     return new_s;
 }
@@ -232,19 +232,6 @@ int calculate_taxi_time(taxi_data *taxi,int max){
     return out ;
 }
 
-void print_metrics( maps_config * my_mp, int* array_id_taxi){
-        int i,j;
-        taxi_data* taxi_list;
-        
-        printf("PRINTING METRICS:\n");
-        for(j=0; j<=my_mp->width; j++){
-                printf("=");               
-        }
-        for(j=0; j<=my_mp->width; j++){
-                printf("=");               
-        }
-        printf("\n");
-}
 
 void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int sem_sync_round,int ex_pos,pid_t*taxi_pid){
         int sem;
@@ -288,18 +275,47 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                 }                             
                             taxi_list[new_id].my_pid=taxi_pid[new_id];
 }
-
+static void shm_print_stats(int fd, int m_id) {
+	struct shmid_ds my_m_data;
+	int ret_val;
+	while (ret_val = shmctl(m_id, IPC_STAT, &my_m_data)) {
+		TEST_ERROR;
+	}
+	dprintf(fd, "--- IPC Shared Memory ID: %8d, START ---\n", m_id);
+	dprintf(fd, "---------------------- Memory size: %ld\n",
+		my_m_data.shm_segsz);
+	dprintf(fd, "---------------------- Time of last attach: %ld\n",
+		my_m_data.shm_atime);
+	dprintf(fd, "---------------------- Time of last detach: %ld\n",
+		my_m_data.shm_dtime); 
+	dprintf(fd, "---------------------- Time of last change: %ld\n",
+		my_m_data.shm_ctime); 
+	dprintf(fd, "---------- Number of attached processes: %ld\n",
+		my_m_data.shm_nattch);
+	dprintf(fd, "----------------------- PID of creator: %d\n",
+		my_m_data.shm_cpid);
+	dprintf(fd, "----------------------- PID of last shmat/shmdt: %d\n",
+		my_m_data.shm_lpid);
+	dprintf(fd, "--- IPC Shared Memory ID: %8d, END -----\n", m_id);
+}
 void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,pid_t* taxi_pid){
         int sem;
         int aspetta = 0;
         int pid;
         int my_y,my_x,ok,i,start;
         char* args_tx[6] ={TAXI};
+        start=0;
+        for(i=1;i<my_mp->num_taxi+1;i++){
+            if(taxi_list[i].my_pid==-1){
+                kill(taxi_pid[i],SIGKILL);
+            }
+        } 
         for(i=1;i<my_mp->num_taxi+1;i++){
             if(taxi_list[i].my_pid==-1){
                 sem = 0;
+                start++;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
-                        args_tx[3] = integer_to_string_arg(taxi_list_pos);       
+                        args_tx[3] = integer_to_string_arg (taxi_list_pos);       
                         srand(time(NULL));
                             while(sem<1){
                                 my_x = rand()%my_mp->height;
@@ -314,8 +330,8 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                                         switch (taxi_pid[i]=fork()) {
                                             case -1:
                                             /*il problema è dato qua, quando vengono create nuovi processi*/
-                                                printf("errore taxi 1 pid=%d\n",taxi_pid[i]);
-                                                exit(EXIT_SUCCESS);
+                                                shm_print_stats(1,taxi_list_pos);
+                                                TEST_ERROR
                                             break;
                                             case 0:
                                                 args_tx[2]= integer_to_string_arg(i); /*id del taxi*/
@@ -329,11 +345,7 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                                         } 
                                     sem=1;
                                 }
-                            }
-                            
-
-                                                     
+                            }                                      
             }
         }
-
 }

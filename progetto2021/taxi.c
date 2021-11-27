@@ -1,3 +1,4 @@
+
 #define _GNU_SOURCE
 #include "taxi_lib.h"
     slot* maps;
@@ -17,14 +18,14 @@
 void timeCheck(){
     
     struct timeval pass;
-    int s,u,n;
+    float s,u,n;
     int mex_so;
     int j;
     gettimeofday(&pass,NULL);
     s=pass.tv_sec - timer.tv_sec;
     u=pass.tv_usec - timer.tv_usec;
-    n = s * 1000000000 + (u * 1000);
-    if(n>=my_mp->timeout){
+    n = s  + (u * 0.0000001);
+    if(n>=(my_mp->timeout)){
         if(taxi_list[my_id].target!=-1 && taxi_list[my_id].dest==-1){
             sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
             j=taxi_list[my_id].target;
@@ -37,8 +38,10 @@ void timeCheck(){
             mexSnd.msgc[1]=taxi_list[my_id].pos;
             mexSnd.msgc[2]=-1;
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
-            wait_zero(my_ks->sem_sync_round, END); 
+            wait_zero(my_ks->sem_sync, END); 
             /*segnale da inviare*/
+            usleep(100);
+            /*detach della memoria condivisa*/
             shmdt(taxi_list);
             shmdt(maps);
             shmdt(my_mp);
@@ -54,7 +57,9 @@ void timeCheck(){
             mexSnd.msgc[1]=taxi_list[my_id].pos;
             mexSnd.msgc[2]=0;
             msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
-            wait_zero(my_ks->sem_sync_round, END); 
+            wait_zero(my_ks->sem_sync, END); 
+            usleep(100);
+            /*detach della memoria condivisa*/
             shmdt(taxi_list);
             shmdt(maps);
             shmdt(my_mp);
@@ -65,13 +70,15 @@ void timeCheck(){
             taxi_list[my_id].my_pid=-1;
             sem_relase(maps[taxi_list[my_id].pos].c_sem_id, 0);
             maps[taxi_list[my_id].pos].num_taxi=0;
-            wait_zero(my_ks->sem_sync_round, END); 
+            wait_zero(my_ks->sem_sync, END); 
+            usleep(100);
+            /*detach della memoria condivisa*/
             shmdt(taxi_list);
             shmdt(maps);
             shmdt(my_mp);
             shmdt(my_ks);
             exit(0);
-    }
+        }
     }else {
         return;
     }
@@ -80,25 +87,22 @@ int main(int argc,char *argv[]){
     int index,i,targ_y,my_y,targ_x,my_x,ex_x,ex_y,sem;
     int dest_x,dest_y,msec,trigger,index2;
     struct sigaction sa;
-    
-    /* configurazione memoria condivisa*/
+    /* attach della memoria condivisa*/
     keys_id = atoi(argv[1]);
     if((my_ks = shmat(keys_id,NULL,0))==(void*)-1){
-        printf("errore nella chiave condivisa \n");
+        TEST_ERROR
     }
     if((my_mp=shmat(my_ks->conf_id,NULL,0))==(void*)-1){
-        printf("errore nella mappa condivisa\n");
-        
+        TEST_ERROR        
     }
     if((maps=shmat(my_ks->maps_id,NULL,0))==(void*)-1){
-         printf("errore nella memoria condivisa\n");
+        TEST_ERROR
     }
     if((taxi_list=shmat(atoi(argv[3]),NULL,0))==(void*)-1){
-         printf("errore nella lista condivisa\n");
+        TEST_ERROR
     }
     /*inizializzo struct del taxi*/
     my_id = atoi(argv[2]);
-    /*impostare il tempo di vita*/
     taxi_list[my_id].my_pid = getpid();
     taxi_list[my_id].pos = atoi(argv[4]);
     taxi_list[my_id].dest = -1;
@@ -111,15 +115,16 @@ int main(int argc,char *argv[]){
     mexSnd.type = TAXI_TO_MASTER;
     mexSndSO.type = TAXI_TO_SOURCE;
     mexRcv.type = SOURCE_TO_TAXI;
+    /*imposto il semaforo*/
     sops.sem_num = 0;
     sops.sem_op = -1;
     sops.sem_flg = IPC_NOWAIT;  
     gettimeofday(&timer,NULL);
     /*spostamento del taxi nella mappa*/
     while(1){
-        /*alcuni processi taxi non raggiungono questo punto, i due processi che hanno il target*/
-        check_zero(my_ks->sem_sync_round, WAIT);
-        wait_zero(my_ks->sem_sync_round, START);
+        /*alcuni processi taxi non raggiungono questo punto,i processi che hanno il target*/
+        check_zero(my_ks->sem_sync, WAIT);
+        wait_zero(my_ks->sem_sync, START);
         timeCheck();
         if(taxi_list[my_id].target != -1){
             my_x = maps[atoi(argv[4])].x;
@@ -196,7 +201,7 @@ int main(int argc,char *argv[]){
                                 msgsnd(my_ks->msgq_id_ts,&mexSndSO,sizeof(mexSndSO)-sizeof(long),0);
                                 /*aspetto risposta dalla source*/
                                 if((msgrcv(my_ks->msgq_id_st,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0)==-1)){
-                                    printf("errore nel ricevere messaggio source \n");
+                                    TEST_ERROR;
                                 }
                                     taxi_list[my_id].exp_so+=1;
                                     taxi_list[my_id].dest=mexRcv.msgc[0];
@@ -287,7 +292,6 @@ int main(int argc,char *argv[]){
                             }
                     }
                     if(my_y==dest_y && my_x==dest_x){
-                        
                         /*messaggio inviato al master*/
                         mexSnd.msgc[0]=my_id;
                         mexSnd.msgc[1]=my_x*my_mp->width+my_y;
@@ -303,7 +307,7 @@ int main(int argc,char *argv[]){
 
             }
             /*possibile problema*/
-        wait_zero(my_ks->sem_sync_round, END); 
+        wait_zero(my_ks->sem_sync,END); 
 
     }
 }

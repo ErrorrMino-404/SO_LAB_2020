@@ -18,7 +18,7 @@ typedef struct _keys_storage {
     int msgq_id_ns;         /*messaggio che il taxi invia al source che non ha raggiunto la destinazione*/
     int msgq_id_end;        /*coda dei messaggi di terminazione taxi causa allarme*/
     int state;
-    int sem_sync_round;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
+    int sem_sync;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
 }keys_storage;
 
 struct message {
@@ -60,7 +60,6 @@ int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*,int);
 
 int* randomize_coordinate_source (source_data*, slot*, maps_config*,int);
 
-void print_metrics(maps_config*,int*);
 
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);
