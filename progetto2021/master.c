@@ -2,7 +2,7 @@
 #include "master_lib.h"
 maps_config *my_mp;
 slot* maps;
-int gc_id_shm, mp_id_shm,so_id_shm,tx_id_shm,key_id_shm,sem_sync;
+int ct_id_shm, mp_id_shm,so_id_shm,tx_id_shm,key_id_shm,sem_sync;
 int msgq_id_sm, msgq_id,msgq_id_so,msgq_id_ds,msgq_id_end,state,new_id,ex_pos,start;
 int  succ,aborti,inve,num_ho,top_taxi,taxi_succes,ex_top_taxi,ex_taxi_succes;/*variabili da stampare*/
 int *position_taxi, *position_so, *array_id_taxi,*holes, i,j,aspetta, *pos_source;
@@ -77,7 +77,7 @@ void handle_signal(int signum){
             clean_sem_maps(my_mp->height, my_mp->width, maps);
             /*rimozione ipcs*/
             shmctl(mp_id_shm, IPC_RMID, NULL);
-            shmctl(gc_id_shm, IPC_RMID, NULL);
+            shmctl(ct_id_shm, IPC_RMID, NULL);
             shmctl(key_id_shm, IPC_RMID, NULL);
             shmctl(so_id_shm, IPC_RMID, NULL);
             shmctl(tx_id_shm, IPC_RMID, NULL);
@@ -121,7 +121,7 @@ void time_stamp(){
             clean_sem_maps(my_mp->height, my_mp->width, maps);
             /*rimozione ipcs*/
             shmctl(mp_id_shm, IPC_RMID, NULL);
-            shmctl(gc_id_shm, IPC_RMID, NULL);
+            shmctl(ct_id_shm, IPC_RMID, NULL);
             shmctl(key_id_shm, IPC_RMID, NULL);
             shmctl(so_id_shm, IPC_RMID, NULL);
             shmctl(tx_id_shm, IPC_RMID, NULL);
@@ -139,10 +139,10 @@ int main(){
     sigaction(SIGINT, &sa, NULL);
     signal(SIGALRM,handle_signal);
     /*allocazione e inizializzazione della memoria condivisa */
-    if((gc_id_shm=shmget(IPC_PRIVATE, sizeof(maps_config), IPC_CREAT|0666))==-1){
+    if((ct_id_shm=shmget(IPC_PRIVATE, sizeof(maps_config), IPC_CREAT|0666))==-1){
                 TEST_ERROR;
     }
-    my_mp = init_maps_config(gc_id_shm);
+    my_mp = init_maps_config(ct_id_shm);
     array_id_taxi = calloc(my_mp->num_taxi,sizeof(int*));
     taxi_pid = calloc(my_mp->num_taxi,sizeof(pid_t));
     so_pid = calloc (my_mp->source, sizeof(pid_t));
@@ -233,7 +233,7 @@ int main(){
         TEST_ERROR;
     }
 
-    my_ks=fill_storage_shm(key_id_shm, gc_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,msgq_id_end,state,sem_sync);
+    my_ks=fill_storage_shm(key_id_shm, ct_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,msgq_id_end,state,sem_sync);
     args_tx[1] = integer_to_string_arg(key_id_shm); /*id insieme delle chiavi*/
     /*args[2] id del taxi*/
     args_tx[3] = integer_to_string_arg(taxi_list_pos);
