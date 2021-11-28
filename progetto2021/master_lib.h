@@ -1,6 +1,5 @@
 #ifndef _M_LIB_
 #define _M_LIB_
-#define MAX_SOURCE 20
 #include "maps.h"
 #include "math.h"
 
@@ -15,7 +14,6 @@ typedef struct _keys_storage {
     int msgq_id_ts;         /*id messaggi condivisi tra taxi e source*/
     int msgq_id_sm;         /*messaggi condivisi tra source e master*/
     int msgq_id_st;         /*messaggi condivisi tra source e taxi */
-    int msgq_id_ns;         /*messaggio che il taxi invia al source che non ha raggiunto la destinazione*/
     int msgq_id_end;        /*coda dei messaggi di terminazione taxi causa allarme*/
     int state;
     int sem_sync;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
@@ -47,7 +45,7 @@ typedef struct _source_data{
     int y;
 }source_data;
 
-keys_storage* fill_storage_shm(int,int,int,int,int,int,int,int,int,int,int);
+keys_storage* fill_storage_shm(int,int,int,int,int,int,int,int,int,int);
 
 int get_rand_so(int,int);
 

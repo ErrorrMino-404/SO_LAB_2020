@@ -8,9 +8,10 @@
 #include "sem_lib.h"
 #include <sys/shm.h>
 
+
 typedef struct _slot{
     /*id del semaforo associato alla casella della mappa*/
-    key_t c_sem_id;
+    key_t sem_id;
     /*se in quella zona è attiva una SO_SOURCE*/
     int val_source;
     int val_holes;

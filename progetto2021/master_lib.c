@@ -10,7 +10,7 @@
 
 
 
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqns,int idsqend,int state,int idsemr){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqend,int state,int idsemr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -22,7 +22,6 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->msgq_id_ts = idqso;
     new_s->msgq_id_sm = idsqsm;
     new_s->msgq_id_st = idsqds;
-    new_s->msgq_id_ns = idsqns;
     new_s->msgq_id_end = idsqend;
     new_s->sem_sync = idsemr;
     new_s->state = state;
@@ -35,17 +34,19 @@ int get_rand_so(int min, int max){
 }
 
 void randomize_holes( int ho_num, maps_config* my_mp,slot* maps){
-    int my_arr[ho_num];
+    int *my_arr;
     int i,j,x,y,ok;
     int num_r, num_sem, tmp_index;
     
+    my_arr=calloc(ho_num,sizeof(int*));
+
     srand(time(NULL));
     i = 0;
     while(i<ho_num){
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         tmp_index = x*my_mp->width+y;
-        if(semctl(maps[tmp_index].c_sem_id,0,GETVAL)){
+        if(semctl(maps[tmp_index].sem_id,0,GETVAL)){
             ok=1;
             for(j = 0; j<i;j++){
                 if(my_arr[j]==tmp_index||my_arr[j]==tmp_index+my_mp->width||
@@ -59,7 +60,7 @@ void randomize_holes( int ho_num, maps_config* my_mp,slot* maps){
                 }
             }
             if(ok==1){
-                init_sem_to_val(maps[tmp_index].c_sem_id,0 , 0);
+                init_sem_to_val(maps[tmp_index].sem_id,0 , 0);
                 my_arr[i]=tmp_index;
                 maps[tmp_index].val_holes = 1; /*la holes è attiva  */  
                 i++;
@@ -90,7 +91,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
         x = rand()%(my_mp->height);
         y = rand()%(my_mp->width);
         sem = x*my_mp->width+y;
-        if(semctl(maps[sem].c_sem_id,0,GETVAL) && maps[sem].val_holes==0){
+        if(semctl(maps[sem].sem_id,0,GETVAL) && maps[sem].val_holes==0){
             ok=1;
             for( j=0; j<i; j++){
                 if(my_arr[j]==sem ){
@@ -98,7 +99,7 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
                 }
             }
             if(ok==1){
-                sem_reserve(maps[x*my_mp->width+y].c_sem_id,0);
+                sem_reserve(maps[x*my_mp->width+y].sem_id,0);
                 my_arr[i]=sem;
                 
                 maps[sem].num_taxi = i;
@@ -248,7 +249,7 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
                                 sem=0;        
-                                if(semctl(maps[my_x*my_mp->width+my_y].c_sem_id,0,GETVAL) && maps[my_x*my_mp->width+my_y].val_holes==0&&
+                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL) && maps[my_x*my_mp->width+my_y].val_holes==0&&
                                 my_x*my_mp->width+my_y!=ex_pos){
                                     sem=1;
                                 }      
@@ -258,7 +259,7 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                             taxi_list[new_id].y = my_y;
                             position_taxi[new_id] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = new_id;
-                            sem_reserve(maps[my_x*my_mp->width+my_y].c_sem_id,0);
+                            sem_reserve(maps[my_x*my_mp->width+my_y].sem_id,0);
                                 switch (taxi_pid[new_id]=fork()){
                                     case -1:
                                         TEST_ERROR
@@ -320,13 +321,13 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                             while(sem<1){
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
-                                if(semctl(maps[my_x*my_mp->width+my_y].c_sem_id,0,GETVAL)){  
+                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL)){  
                                     taxi_list[i].x = my_x;
                                     taxi_list[i].y = my_y;
                                     position_taxi[i] = my_x*my_mp->width+my_y;
                                     maps[my_x*my_mp->width+my_y].num_taxi = i;
                                     taxi_list[i].pos =my_x*my_mp->width+my_y;
-                                    sem_reserve(maps[my_x*my_mp->width+my_y].c_sem_id,0);
+                                    sem_reserve(maps[my_x*my_mp->width+my_y].sem_id,0);
                                         switch (taxi_pid[i]=fork()) {
                                             case -1:
                                             /*il problema è dato qua, quando vengono create nuovi processi*/

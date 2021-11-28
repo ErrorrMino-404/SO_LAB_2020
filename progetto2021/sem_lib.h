@@ -10,8 +10,6 @@ union semun {
 	unsigned short  *array;  
 	struct seminfo  *__buf;  
 };
-
-
 int sem_set_val(int, int, int);
 
 int sem_reserve(int, int);

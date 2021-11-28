@@ -7,7 +7,6 @@
 #define WAIT 1
 #define START 2
 #define END 3
-
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,7 +36,7 @@ typedef struct maps_config{
     int timensec_max;   /*tempo massimo di attraverso di una casella*/
     int durantion;      /*tempo di dura*/
     int top_cells;      /*numero di celle maggiormente attraversate*/
-    float timeout;      /*tempo di sosta dei taxi*/
+    long timeout;      /*tempo di sosta dei taxi*/
 }maps_config;
 
 maps_config* init_maps_config();
