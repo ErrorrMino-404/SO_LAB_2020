@@ -111,7 +111,7 @@ int main(int argc,char *argv[]){
         check_zero(my_ks->sem_sync, WAIT);
         wait_zero(my_ks->sem_sync, START);
         if(loop==0){
-            alarm(1);
+            alarm(my_mp->timeout);
             loop++;
         }
         if(taxi_list[my_id].target != -1){
@@ -135,7 +135,7 @@ int main(int argc,char *argv[]){
                             tim.tv_nsec=0;
                             tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
-                            alarm(1);
+                            alarm(my_mp->timeout);
                         }
                     }if(my_x>targ_x ){
                         if(semop(maps[(my_x-1)*my_mp->width+my_y].sem_id,&sops,1)!=-1){
@@ -150,7 +150,7 @@ int main(int argc,char *argv[]){
                             tim.tv_nsec=0;
                             tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
-                            alarm(1);
+                            alarm(my_mp->timeout);
                             
                         }
                     }if(my_y<targ_y ){
@@ -166,7 +166,7 @@ int main(int argc,char *argv[]){
                             tim.tv_nsec=0;
                             tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
-                            alarm(1);
+                            alarm(my_mp->timeout);
                         }
                     }if(my_y>targ_y ){
                         if(semop(maps[(my_x)*my_mp->width+my_y-1].sem_id,&sops,1)!=-1){
@@ -181,7 +181,7 @@ int main(int argc,char *argv[]){
                             tim.tv_nsec=0;
                             tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                             nanosleep(&tim, NULL);
-                            alarm(1);
+                            alarm(my_mp->timeout);
                         }
                     }
                     if(my_x == targ_x && my_y == targ_y){
@@ -200,7 +200,7 @@ int main(int argc,char *argv[]){
                                     taxi_list[my_id].dest=mexRcv.msgc[0];
                                     taxi_list[my_id].car_so=maps[(my_x)*my_mp->width+my_y].val_source;
                                     index=-1;
-                                    alarm(1);
+                                    alarm(my_mp->timeout);
                             }    
                     }  
                     taxi_list[my_id].pos= my_x*my_mp->width+my_y; 
@@ -232,7 +232,7 @@ int main(int argc,char *argv[]){
                                 tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 taxi_list[my_id].time+=maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
-                                alarm(1);
+                               alarm(my_mp->timeout);
                             }
                     }
                     if(my_x<dest_x){
@@ -249,7 +249,7 @@ int main(int argc,char *argv[]){
                                 tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 taxi_list[my_id].time+=maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
-                                alarm(1);
+                                alarm(my_mp->timeout);
                             }
                     }
                     if(my_y>dest_y){
@@ -266,7 +266,7 @@ int main(int argc,char *argv[]){
                                 tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 taxi_list[my_id].time+=maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
-                                alarm(1);
+                                alarm(my_mp->timeout);
                             }
                     }
                     if(my_y<dest_y){
@@ -283,7 +283,7 @@ int main(int argc,char *argv[]){
                                 tim.tv_nsec=(long)maps[my_x*my_mp->width+my_y].tmp_attr;
                                 taxi_list[my_id].time+=maps[my_x*my_mp->width+my_y].tmp_attr;
                                 nanosleep(&tim, NULL);
-                                alarm(1);
+                                alarm(my_mp->timeout);
                             }
                     }
                     if(my_y==dest_y && my_x==dest_x){
@@ -294,7 +294,7 @@ int main(int argc,char *argv[]){
                         mexSnd.msgc[2]=1;
                         msgsnd(my_ks->msgq_id,&mexSnd,sizeof(mexSnd)-sizeof(long),0);
                         index2=-1;
-                        alarm(1);
+                        alarm(my_mp->timeout);
                     } 
                     taxi_list[my_id].pos=my_x*my_mp->width+my_y;
                     taxi_list[my_id].y=my_y;
