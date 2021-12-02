@@ -14,8 +14,6 @@ typedef struct _keys_storage {
     int msgq_id_ts;         /*id messaggi condivisi tra taxi e source*/
     int msgq_id_sm;         /*messaggi condivisi tra source e master*/
     int msgq_id_st;         /*messaggi condivisi tra source e taxi */
-    int msgq_id_end;        /*coda dei messaggi di terminazione taxi causa allarme*/
-    int state;
     int sem_sync;     /*id del secondo semaforo di sincronizzazione player-master-pawn*/
 }keys_storage;
 
@@ -45,9 +43,7 @@ typedef struct _source_data{
     int y;
 }source_data;
 
-keys_storage* fill_storage_shm(int,int,int,int,int,int,int,int,int,int);
-
-int get_rand_so(int,int);
+keys_storage* fill_storage_shm(int,int,int,int,int,int,int,int);
 
 void randomize_holes(int, maps_config*, slot*);
 
@@ -57,8 +53,6 @@ char* integer_to_string_arg(int);
 int* randomize_coordinate_taxi (taxi_data*,slot*, maps_config*,int);
 
 int* randomize_coordinate_source (source_data*, slot*, maps_config*,int);
-
-
 /*targa del taxi che deve raggiungere quella posizione*/
 void compute_targets(taxi_data*, int, slot*, int*);
 

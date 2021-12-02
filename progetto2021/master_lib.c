@@ -7,10 +7,7 @@
 #include <sys/types.h>
 #include <time.h>
 
-
-
-
-keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsqend,int state,int idsemr){
+keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int idsqsm,int idsqds,int idsemr){
     keys_storage* new_s;
     if((new_s=shmat(idm,NULL,0))==((void*)-1)){
         TEST_ERROR;
@@ -22,16 +19,10 @@ keys_storage* fill_storage_shm (int idm, int idc, int ids, int idq,int idqso,int
     new_s->msgq_id_ts = idqso;
     new_s->msgq_id_sm = idsqsm;
     new_s->msgq_id_st = idsqds;
-    new_s->msgq_id_end = idsqend;
     new_s->sem_sync = idsemr;
-    new_s->state = state;
     return new_s;
 }
 
-int get_rand_so(int min, int max){
-    srand(time(NULL));
-    return min==max ? min :(rand()% (max-min)) + min;
-}
 
 void randomize_holes( int ho_num, maps_config* my_mp,slot* maps){
     int *my_arr;
@@ -70,18 +61,15 @@ void randomize_holes( int ho_num, maps_config* my_mp,slot* maps){
 
 
 }
-
 char* integer_to_string_arg(int x){
     char *sup_x;
     sup_x = malloc(3*sizeof(x)+1);
     sprintf(sup_x, "%d",x);
     return sup_x;
 }
-
 int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my_mp,int tx_num){
     int i, ok, sem, x, y,j;
     int* my_arr;
-    printf("sono dentro \n");
     if((my_arr = (int*)shmat(tx_num,NULL,0))==(void*) -1 ){
         TEST_ERROR
     }
@@ -111,7 +99,6 @@ int* randomize_coordinate_taxi (taxi_data* taxi_list,slot* maps, maps_config* my
         }  
 
     }
-    printf("esco \n");
     return my_arr;
 }
 int * randomize_coordinate_source (source_data* list_source, slot* maps, maps_config* my_mp,int so_num){
@@ -232,15 +219,13 @@ int calculate_taxi_time(taxi_data *taxi,int max){
     }
     return out ;
 }
-
-
 void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,int sem_sync_round,int ex_pos,pid_t*taxi_pid){
         int sem;
         int aspetta = 0;
         int my_y,my_x,ok,pid;
 
         char* args_tx[6] ={TAXI};
-       
+                    maps[ex_pos].num_taxi = 0;
                         sem = 0;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg(taxi_list_pos);       
@@ -249,8 +234,10 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
                                 sem=0;        
-                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL) && maps[my_x*my_mp->width+my_y].val_holes==0&&
+                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL) &&
                                 my_x*my_mp->width+my_y!=ex_pos){
+                                    taxi_list[new_id].x = my_x;
+                                    taxi_list[new_id].y = my_y;
                                     sem=1;
                                 }      
                             }
@@ -303,25 +290,21 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
         int sem;
         int aspetta = 0;
         int pid;
-        int my_y,my_x,ok,i,start;
+        int my_y,my_x,ok,i;
         char* args_tx[6] ={TAXI};
-        start=0;
+        int ex_pos;
         for(i=1;i<my_mp->num_taxi+1;i++){
             if(taxi_list[i].my_pid==-1){
-                kill(taxi_pid[i],SIGKILL);
-            }
-        } 
-        for(i=1;i<my_mp->num_taxi+1;i++){
-            if(taxi_list[i].my_pid==-1){
+                position_taxi[i]=-1;
                 sem = 0;
-                start++;
+                    ex_pos=taxi_list[i].pos;
                         args_tx[1] = integer_to_string_arg(key_id_shm);
                         args_tx[3] = integer_to_string_arg (taxi_list_pos);       
                         srand(time(NULL));
                             while(sem<1){
                                 my_x = rand()%my_mp->height;
                                 my_y = rand()%my_mp->width;
-                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL)){  
+                                if(semctl(maps[my_x*my_mp->width+my_y].sem_id,0,GETVAL) && ex_pos!=my_x*my_mp->width+my_y){  
                                     taxi_list[i].x = my_x;
                                     taxi_list[i].y = my_y;
                                     position_taxi[i] = my_x*my_mp->width+my_y;
@@ -349,4 +332,5 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                             }                                      
             }
         }
+        
 }

@@ -3,14 +3,13 @@
 maps_config *my_mp;
 slot* maps;
 int ct_id_shm, mp_id_shm,so_id_shm,tx_id_shm,key_id_shm,sem_sync;
-int msgq_id_sm, msgq_id,msgq_id_so,msgq_id_ds,msgq_id_end,state,new_id,ex_pos,start;
+int msgq_id_sm, msgq_id,msgq_id_so,msgq_id_ds,new_id,ex_pos,start;
 int  succ,aborti,inve,num_ho,top_taxi,taxi_succes,ex_top_taxi,ex_taxi_succes;/*variabili da stampare*/
 int *position_taxi, *position_so, *array_id_taxi,*holes, i,j,aspetta, *pos_source;
 int taxi_list_pos,source_list_pos, num_so,ex_id,ex_pos,mex_so,my_x,my_y,ok,sem,x,num_source;
 int val_top_taxi, val_taxi_succes,ex_val_tpt,ex_val_tss,top_time,val_time,ex_top_time,ex_val_time;
 struct message mexSnd;
 struct message mexRcv;
-struct message mexRcvDS;
 struct message mexRcvSM;    
 char* args_tx[6] = {TAXI},*args_so[6] = {SOURCE};
 pid_t* taxi_pid,*so_pid;
@@ -46,12 +45,11 @@ void handle_signal(int signum){
                     top_time = ex_top_time;
                     val_time = ex_val_time;
                 }
-                print_maps(maps,my_mp,pos_source,num_source);
+                print_maps(maps,my_mp,pos_source,num_source,position_taxi);
                 alarm(1);
            
         } else {
                     int i, j;
-            printf("GAME ENDED\nPrinting chessboard and statistics.\n\n");
             for(i=1; i<my_mp->num_taxi+1; i++){
                     kill(taxi_pid[i], SIGTERM);  
             }
@@ -67,12 +65,11 @@ void handle_signal(int signum){
             msgctl(msgq_id_so, IPC_RMID, 0);
             msgctl(msgq_id_sm, IPC_RMID, 0);
             msgctl(msgq_id_ds, IPC_RMID, 0);
-            msgctl(msgq_id_end, IPC_RMID, 0);
-            msgctl(state, IPC_RMID, 0);
             /*free dei puntatori*/
             free(array_id_taxi);
             free(taxi_pid);
             free(so_pid);
+            free(pos_source);
             /*pulizia semafori*/
             clean_sem_maps(my_mp->height, my_mp->width, maps);
             /*rimozione ipcs*/
@@ -82,7 +79,7 @@ void handle_signal(int signum){
             shmctl(so_id_shm, IPC_RMID, NULL);
             shmctl(tx_id_shm, IPC_RMID, NULL);
                 /*fine gioco SIGINT*/
-                printf("The game ended because the SIGINT signal was received.\n");
+                printf("The process ended because the SIGINT signal was received.\n");
                 exit(EXIT_FAILURE);
         }
     }
@@ -95,7 +92,6 @@ void time_stamp(){
     n = s + (u * 0.0000001);
     if(n>=(my_mp->durantion)){
                     int i, j;
-            printf("GAME ENDED\nPrinting chessboard and statistics.\n\n");
             for(i=1; i<my_mp->num_taxi+1; i++){
                     kill(taxi_pid[i], SIGTERM);  
             }
@@ -111,12 +107,11 @@ void time_stamp(){
             msgctl(msgq_id_so, IPC_RMID, 0);
             msgctl(msgq_id_sm, IPC_RMID, 0);
             msgctl(msgq_id_ds, IPC_RMID, 0);
-            msgctl(msgq_id_end, IPC_RMID, 0);
-            msgctl(state, IPC_RMID, 0);
             /*free dei puntatori*/
             free(array_id_taxi);
             free(taxi_pid);
             free(so_pid);
+            free(pos_source);
             /*pulizia semafori*/
             clean_sem_maps(my_mp->height, my_mp->width, maps);
             /*rimozione ipcs*/
@@ -126,7 +121,7 @@ void time_stamp(){
             shmctl(so_id_shm, IPC_RMID, NULL);
             shmctl(tx_id_shm, IPC_RMID, NULL);
                 /*fine gioco SIGINT*/
-                printf("The game ended because the SIGALRM signal was received.\n");
+                printf("The process ended for TIMEOUT.\n");
                 exit(EXIT_SUCCESS);
         }
   
@@ -166,13 +161,7 @@ int main(){
     if((msgq_id_ds = msgget(IPC_PRIVATE,IPC_CREAT|0666))==-1){
         TEST_ERROR
     }
-    /*coda di messaggi per creare un taxi al posto di quello morto*/
-    if((msgq_id_end = msgget(IPC_PRIVATE,IPC_CREAT|0666))==-1){
-        TEST_ERROR
-    }
-    if((state =msgget(IPC_PRIVATE,IPC_CREAT|0666))==-1){
-        TEST_ERROR
-    }
+
     /*sincronizzazione tra i taxi*/
     if((sem_sync=semget(IPC_PRIVATE, 4, IPC_CREAT|0666))==-1){
         TEST_ERROR
@@ -233,7 +222,7 @@ int main(){
         TEST_ERROR;
     }
 
-    my_ks=fill_storage_shm(key_id_shm, ct_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,msgq_id_end,state,sem_sync);
+    my_ks=fill_storage_shm(key_id_shm, ct_id_shm, mp_id_shm, msgq_id,msgq_id_so,msgq_id_sm,msgq_id_ds,sem_sync);
     args_tx[1] = integer_to_string_arg(key_id_shm); /*id insieme delle chiavi*/
     /*args[2] id del taxi*/
     args_tx[3] = integer_to_string_arg(taxi_list_pos);
@@ -277,7 +266,6 @@ int main(){
     
     mexRcv.type = TAXI_TO_MASTER;
     mexRcvSM.type = SOURCE_TO_MASTER;
-    mexRcvDS.type = TAXI_TO_MASTER;
     succ = 0;                               /*numero di source andate a buonfine*/
     aborti = 0;                             /*numero di source prese da un taxi, ma che non hanno raggiunto la destinazione*/ 
     i=0;
@@ -294,15 +282,27 @@ int main(){
     gettimeofday(&timer,NULL);
     alarm(1);
     while(1){
+        for(x=0;x<num_source;x++){
+            pos_source[x]=-1;
+        }
         for (x=0;x<my_mp->source;x++){
             kill(source_list[x].my_pid,SIGUSR1);
         }
-        inve+=num_source;
+        inve+=num_source;        
         check_taxi(my_mp,maps,taxi_list,key_id_shm,taxi_list_pos,position_taxi,taxi_pid);
-            for(x=0;x<num_source;x++){
+        x=0;
+            while(x<num_source){
+                ok=1;
                 msgrcv(my_ks->msgq_id_sm,&mexRcvSM,sizeof(mexRcvSM)-sizeof(long),mexRcvSM.type,0);
-                
-                pos_source[x]=mexRcvSM.msgc[0];
+                    for(i=0;i<x;i++){
+                        if(mexRcvSM.msgc[0]==pos_source[i]){
+                            ok=0;
+                        }
+                    }
+                if(ok==1){
+                    pos_source[x]=mexRcvSM.msgc[0];
+                    x++;
+                }
             }
         pos_source[x]=-1;
         time_stamp();
@@ -316,29 +316,30 @@ int main(){
                             msgrcv(my_ks->msgq_id,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
                             if(mexRcv.msgc[2]==1){
                                 position_taxi[mexRcv.msgc[0]]=mexRcv.msgc[1];
-                                maps[mexRcv.msgc[1]].num_taxi=mexRcv.msgc[0];
                                 succ++;
                                 inve--; 
                             }else if(mexRcv.msgc[2]==-1){
                                     new_id=mexRcv.msgc[0];
                                     ex_pos=mexRcv.msgc[1];
-                                    maps[ex_pos].num_taxi = 0;
-                                    position_taxi[new_id]=0;
+                                    position_taxi[new_id]=-1;
                                     create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);    
                             }else if(mexRcv.msgc[2]==0){
                                 inve--;
                                 aborti++;
                                     new_id=mexRcv.msgc[0];
                                     ex_pos=mexRcv.msgc[1];
-                                    maps[ex_pos].num_taxi = 0;
-                                    position_taxi[new_id]=0;
+                                    position_taxi[new_id]=-1;
                                     create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);
                             }
                             x--;
                             time_stamp();
                         }
-                    increase_resource(sem_sync,END,my_mp->num_taxi);
-                    check_zero(sem_sync,END);
+                increase_resource(sem_sync,END,my_mp->num_taxi);
+                check_zero(sem_sync,END);
+                printf("terminato end \n");
+                for(i=1;i<my_mp->num_taxi+1;i++){
+                    printf("TAXI=%d POS=%d PID=%d\n",i,taxi_list[i].pos,taxi_list[i].my_pid);
+                }
                
     }
 }   

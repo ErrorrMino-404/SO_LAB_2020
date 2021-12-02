@@ -26,7 +26,7 @@ typedef struct _slot{
 
 slot* create_maps (int, int, int,int,int,int,int);
 
-void print_maps(slot*, maps_config*,int*,int);
+void print_maps(slot*, maps_config*,int*,int,int*);
 
 void print_metrics(slot*,maps_config*,int*,int,int,int,int,int,int,int,int,int,int);
 

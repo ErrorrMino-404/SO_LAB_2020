@@ -49,12 +49,13 @@ void clean_sem_maps(int height, int width, slot* maps){
         }
     }
 }
-void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so){
+void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so,int* position_taxi){
     int i, j,u,x,y;
+    int val;
     int sem_m;
     /*stampa mappa*/
     printf("MAPPA DI CITTA' \n");
-    
+    val=0;
     for(j = 0; j <= my_mp->width-1; j++){
         printf("_");
     }
@@ -63,23 +64,23 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so){
     for(i=0;i<my_mp->height; i++){
                 for(j=0; j<my_mp->width; j++){
                     u = 0;
-                    if(maps[i*my_mp->width+j].num_taxi != 0){
-                        for(x=0;x<so; x++){
-                            if (position_so[x] == i*my_mp->width+j ) {
-                                color(RED);
-                                printf("S");
+                    if(maps[i*my_mp->width+j].num_taxi != 0){ 
+                        for(x=1;x<my_mp->num_taxi+1 && u!=1; x++){
+                            if (position_taxi[x] == i*my_mp->width+j ) {
+                                printf("T");
+                                val++;
                                 u = 1;
                             }
                         } 
                         if(u!=1){
-                            printf("T");  
-                        }
+                            printf(" ");
+                        } 
                     }else if(maps[i*my_mp->width+j].val_holes!= 0){
                         color(YEL);
                         printf("X");
                     }/*posizone delle source*/
                     else if(maps[i*my_mp->width+j].val_source!= -1){
-                        for(x=0;x<so; x++){
+                        for(x=0;x<so && u!=1; x++){
                             if (position_so[x] == i*my_mp->width+j ) {
                                 color(RED);
                                 printf("S");
@@ -102,7 +103,9 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so){
         printf("_");
     }
     printf("|\n");
+    printf("val=%d \n",val);
 }
+
 void print_metrics(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int taxi_succes,int succ,int aborti,int inve,int val_move,int val_succ,int taxi_time,int val_time,int so){
     /*stampo movimenti taxi*/
     int *mov_cell,i,j;

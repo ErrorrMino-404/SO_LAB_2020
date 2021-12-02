@@ -13,7 +13,6 @@
     struct message mexRcv;
     struct sigaction sa;
 void handle_signal(){
-        source[my_id].destin = randomize_dest(source[my_id].origin, my_mp,source,maps);
         mexSndSM.msgc[0]=source[my_id].origin;
         mexSndSM.msgc[1]=my_id;
         msgsnd(my_ks->msgq_id_sm,&mexSndSM,sizeof(mexSndSM)-sizeof(long),0);
@@ -51,7 +50,7 @@ int main (int argc, char *argv[]){
                 if(mexRcv.msgc[2]==1){
                     source[mexRcv.msgc[1]].my_taxi = mexRcv.msgc[0];
                     /*messaggio da inviare al taxi*/
-                    mexSndSO.msgc[0]=source[my_id].destin;
+                    mexSndSO.msgc[0]=randomize_dest(source[my_id].origin, my_mp,source,maps);
                     msgsnd(my_ks->msgq_id_st,&mexSndSO,sizeof(mexSndSO)-sizeof(long),0);
                 }
     }
