@@ -10,3 +10,6 @@ source: init.conf master.c taxi.c source.c master_lib.c master_lib.h maps.c maps
 	gcc $(CFLAGS) source.c source_lib.c config.c maps.c sem_lib.c taxi_lib.c  -o source
 run:  all
 	./master
+
+clean: 
+	rm master taxi source

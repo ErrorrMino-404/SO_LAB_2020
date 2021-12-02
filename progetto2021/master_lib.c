@@ -242,8 +242,6 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                 }      
                             }
                             taxi_list[new_id].pos=my_x*my_mp->width+my_y;
-                            taxi_list[new_id].x = my_x;
-                            taxi_list[new_id].y = my_y;
                             position_taxi[new_id] = my_x*my_mp->width+my_y;
                             maps[my_x*my_mp->width+my_y].num_taxi = new_id;
                             sem_reserve(maps[my_x*my_mp->width+my_y].sem_id,0);
@@ -260,41 +258,23 @@ void create_new_taxi(maps_config*my_mp,slot*maps,int new_id,taxi_data*taxi_list,
                                     break;
                                     default:
                                     break;
-                                }                             
+                                } 
+                            taxi_list[new_id].x = my_x;
+                            taxi_list[new_id].y = my_y;                           
                             taxi_list[new_id].my_pid=taxi_pid[new_id];
 }
-static void shm_print_stats(int fd, int m_id) {
-	struct shmid_ds my_m_data;
-	int ret_val;
-	while (ret_val = shmctl(m_id, IPC_STAT, &my_m_data)) {
-		TEST_ERROR;
-	}
-	dprintf(fd, "--- IPC Shared Memory ID: %8d, START ---\n", m_id);
-	dprintf(fd, "---------------------- Memory size: %ld\n",
-		my_m_data.shm_segsz);
-	dprintf(fd, "---------------------- Time of last attach: %ld\n",
-		my_m_data.shm_atime);
-	dprintf(fd, "---------------------- Time of last detach: %ld\n",
-		my_m_data.shm_dtime); 
-	dprintf(fd, "---------------------- Time of last change: %ld\n",
-		my_m_data.shm_ctime); 
-	dprintf(fd, "---------- Number of attached processes: %ld\n",
-		my_m_data.shm_nattch);
-	dprintf(fd, "----------------------- PID of creator: %d\n",
-		my_m_data.shm_cpid);
-	dprintf(fd, "----------------------- PID of last shmat/shmdt: %d\n",
-		my_m_data.shm_lpid);
-	dprintf(fd, "--- IPC Shared Memory ID: %8d, END -----\n", m_id);
-}
+
 void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,int taxi_list_pos, int*position_taxi,pid_t* taxi_pid){
         int sem;
         int aspetta = 0;
         int pid;
         int my_y,my_x,ok,i;
         char* args_tx[6] ={TAXI};
-        int ex_pos;
+        int ex_pos,start;
+        start=0;
         for(i=1;i<my_mp->num_taxi+1;i++){
             if(taxi_list[i].my_pid==-1){
+                start++;
                 position_taxi[i]=-1;
                 sem = 0;
                     ex_pos=taxi_list[i].pos;
@@ -313,8 +293,7 @@ void check_taxi(maps_config*my_mp,slot*maps,taxi_data*taxi_list,int key_id_shm,i
                                     sem_reserve(maps[my_x*my_mp->width+my_y].sem_id,0);
                                         switch (taxi_pid[i]=fork()) {
                                             case -1:
-                                            /*il problema è dato qua, quando vengono create nuovi processi*/
-                                                shm_print_stats(1,taxi_list_pos);
+                                
                                                 TEST_ERROR
                                             break;
                                             case 0:

@@ -209,7 +209,6 @@ int main(){
                         }
                 }
     }
-
     randomize_holes(num_ho, my_mp, maps);
     if((so_id_shm=shmget(IPC_PRIVATE, (my_mp->source+1)*sizeof(int), IPC_CREAT|0666))==-1){
             TEST_ERROR;
@@ -321,14 +320,16 @@ int main(){
                             }else if(mexRcv.msgc[2]==-1){
                                     new_id=mexRcv.msgc[0];
                                     ex_pos=mexRcv.msgc[1];
-                                    position_taxi[new_id]=-1;
-                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);    
+                    
+                                    sem_reserve(sem_sync,WAIT);
+                                    create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);
                             }else if(mexRcv.msgc[2]==0){
                                 inve--;
                                 aborti++;
                                     new_id=mexRcv.msgc[0];
                                     ex_pos=mexRcv.msgc[1];
-                                    position_taxi[new_id]=-1;
+                                    
+                                    sem_reserve(sem_sync,WAIT);
                                     create_new_taxi(my_mp,maps,new_id,taxi_list,key_id_shm,taxi_list_pos,position_taxi,sem_sync,ex_pos,taxi_pid);
                             }
                             x--;
@@ -336,10 +337,7 @@ int main(){
                         }
                 increase_resource(sem_sync,END,my_mp->num_taxi);
                 check_zero(sem_sync,END);
-                printf("terminato end \n");
-                for(i=1;i<my_mp->num_taxi+1;i++){
-                    printf("TAXI=%d POS=%d PID=%d\n",i,taxi_list[i].pos,taxi_list[i].my_pid);
-                }
+                sem_relase(sem_sync,WAIT);
                
     }
 }   

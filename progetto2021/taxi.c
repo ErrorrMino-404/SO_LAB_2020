@@ -37,9 +37,8 @@ void time_check(){
             shmdt(my_mp);
             shmdt(my_ks);
             /*detach della memoria con divisa*/
-
             exit(0);
-        }else if(taxi_list[my_id].dest!=-1 && taxi_list[my_id].target!=-1){
+        }else if(taxi_list[my_id].dest!=-1){            
             sem_relase(maps[taxi_list[my_id].pos].sem_id, 0);
             mexSnd.msgc[0]=my_id;
             mexSnd.msgc[1]=taxi_list[my_id].pos;
@@ -54,7 +53,6 @@ void time_check(){
             shmdt(my_ks);
             exit(0);
         }else{
-            printf("passato un secondo \n");
             taxi_list[my_id].my_pid=-1;
             sem_relase(maps[taxi_list[my_id].pos].sem_id, 0);
             maps[taxi_list[my_id].pos].num_taxi=0;
@@ -91,20 +89,20 @@ int main(int argc,char *argv[]){
     taxi_list[my_id].my_pid = getpid();
     taxi_list[my_id].pos = atoi(argv[4]);
     taxi_list[my_id].dest = -1;
+    taxi_list[my_id].target=-1;
     taxi_list[my_id].move = 0;
     taxi_list[my_id].exp_so = 0;
     maps[atoi(argv[4])].num_taxi = my_id;
     taxi_list[my_id].time = 0;
     /*alloco il taxi nella mappa*/
     /*Comunicazione dei taxi con il master*/
-
+   
     mexSnd.type = TAXI_TO_MASTER;
     mexSndSO.type = TAXI_TO_SOURCE;
     mexRcv.type = SOURCE_TO_TAXI;
     /*imposto il semaforo*/
     sops.sem_num = 0;
-    sops.sem_op = -1;
-    sops.sem_flg = IPC_NOWAIT; 
+    sops.sem_op = -1; 
     loop=0; 
     signal(SIGALRM,time_check);
     /*spostamento del taxi nella mappa*/
@@ -112,7 +110,6 @@ int main(int argc,char *argv[]){
         /*alcuni processi taxi non raggiungono questo punto,i processi che hanno il target*/
         check_zero(my_ks->sem_sync, WAIT);
         wait_zero(my_ks->sem_sync, START);
-        printf("sono dentro %d\n",my_id);
         if(loop==0){
             alarm(1);
             loop++;
@@ -196,8 +193,9 @@ int main(int argc,char *argv[]){
                                 mexSndSO.msgc[2]=1;
                                 msgsnd(my_ks->msgq_id_ts,&mexSndSO,sizeof(mexSndSO)-sizeof(long),0);
                                 /*aspetto risposta dalla source*/
-                                msgrcv(my_ks->msgq_id_st,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0);
-
+                                if((msgrcv(my_ks->msgq_id_st,&mexRcv,sizeof(mexRcv)-sizeof(long),mexRcv.type,0))==-1){
+                                    TEST_ERROR;
+                                }
                                     taxi_list[my_id].exp_so+=1;
                                     taxi_list[my_id].dest=mexRcv.msgc[0];
                                     taxi_list[my_id].car_so=maps[(my_x)*my_mp->width+my_y].val_source;

@@ -55,7 +55,6 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so,int* posit
     int sem_m;
     /*stampa mappa*/
     printf("MAPPA DI CITTA' \n");
-    val=0;
     for(j = 0; j <= my_mp->width-1; j++){
         printf("_");
     }
@@ -68,7 +67,6 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so,int* posit
                         for(x=1;x<my_mp->num_taxi+1 && u!=1; x++){
                             if (position_taxi[x] == i*my_mp->width+j ) {
                                 printf("T");
-                                val++;
                                 u = 1;
                             }
                         } 
@@ -103,7 +101,6 @@ void print_maps(slot* maps,maps_config* my_mp,int* position_so,int so,int* posit
         printf("_");
     }
     printf("|\n");
-    printf("val=%d \n",val);
 }
 
 void print_metrics(slot* maps,maps_config* my_mp,int* position_so,int top_taxi,int taxi_succes,int succ,int aborti,int inve,int val_move,int val_succ,int taxi_time,int val_time,int so){
